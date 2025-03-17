@@ -26,3 +26,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+*.dmg
+*.pkg

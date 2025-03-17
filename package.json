@@ -31,12 +31,8 @@
       "output": "dist"
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ]
+      "target": "nsis",
+      "icon": "elder-manager/public/app.ico"
     },
     "nsis": {
       "oneClick": false,
