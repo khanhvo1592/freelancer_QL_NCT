@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+elder-manager/node_modules/
+elder-mgmt-be/node_modules/
+
+# Build output
+dist/
+elder-manager/build/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp

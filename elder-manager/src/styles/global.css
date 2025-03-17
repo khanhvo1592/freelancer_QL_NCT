@@ -1,0 +1,83 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #fff0f3;
+  color: #212529;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  transition: margin-left 0.3s;
+  margin-top: 64px;
+}
+
+.content-shift {
+  margin-left: 240px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffe6ea;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d32f2f;
+  opacity: 0.7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9a0007;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .MuiPaper-root {
+    box-shadow: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+} 
