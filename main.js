@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 // Thay thế electron-is-dev bằng kiểm tra process.env.NODE_ENV
 const isDev = process.env.NODE_ENV === 'development';
@@ -222,3 +222,139 @@ setInterval(() => {
         app.quit();
     });
 }, 3600000); // Kiểm tra mỗi giờ
+
+// Thêm xử lý sự kiện in
+ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
+  const printWindow = new BrowserWindow({
+    width: 800,
+    height: 900,
+    title: 'Phiếu thông tin người cao tuổi',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Phiếu thông tin người cao tuổi</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            font-size: 14px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+          }
+          .info-group {
+            margin-bottom: 20px;
+          }
+          .info-row {
+            display: flex;
+            margin: 10px 0;
+            border-bottom: 1px dotted #ccc;
+            padding: 5px 0;
+          }
+          .label {
+            width: 200px;
+            font-weight: bold;
+          }
+          .value {
+            flex: 1;
+          }
+          .footer {
+            margin-top: 50px;
+            text-align: right;
+          }
+          .signature-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+          }
+          .signature-box {
+            text-align: center;
+            width: 200px;
+          }
+          .signature-line {
+            margin-top: 70px;
+            border-top: 1px dotted #000;
+          }
+          @media print {
+            .no-print {
+              display: none;
+            }
+            body {
+              padding: 0;
+              margin: 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">PHIẾU THÔNG TIN NGƯỜI CAO TUỔI</div>
+          <div>Ngày lập phiếu: ${new Date().toLocaleDateString('vi-VN')}</div>
+        </div>
+
+        <div class="info-group">
+          <div class="info-row">
+            <div class="label">Họ và tên:</div>
+            <div class="value">${elderlyData.name}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Ngày sinh:</div>
+            <div class="value">${new Date(elderlyData.dateOfBirth).toLocaleDateString('vi-VN')}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Giới tính:</div>
+            <div class="value">${elderlyData.gender === 'male' ? 'Nam' : 'Nữ'}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Địa chỉ:</div>
+            <div class="value">${elderlyData.address}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Số điện thoại:</div>
+            <div class="value">${elderlyData.phone || 'Không có'}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Trạng thái:</div>
+            <div class="value">${elderlyData.deceased ? 'Đã mất' : 'Còn sống'}</div>
+          </div>
+          <div class="info-row">
+            <div class="label">Ghi chú:</div>
+            <div class="value">${elderlyData.notes || ''}</div>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-box">
+            <div>Người lập phiếu</div>
+            <div class="signature-line"></div>
+          </div>
+          <div class="signature-box">
+            <div>Xác nhận của hội</div>
+            <div class="signature-line"></div>
+          </div>
+        </div>
+
+        <button class="no-print" onclick="window.print()" 
+          style="position: fixed; bottom: 20px; right: 20px; padding: 10px 20px;">
+          In phiếu
+        </button>
+      </body>
+    </html>
+  `;
+
+  await printWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(htmlContent)}`);
+});

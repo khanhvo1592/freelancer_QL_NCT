@@ -317,14 +317,6 @@ const Statistics = () => {
         <Box>
           <Button 
             variant="outlined" 
-            startIcon={<PrintIcon />} 
-            sx={{ mr: 1 }}
-            onClick={() => window.print()}
-          >
-            In báo cáo
-          </Button>
-          <Button 
-            variant="outlined" 
             startIcon={<FileDownloadIcon />}
             onClick={exportToExcel}
           >

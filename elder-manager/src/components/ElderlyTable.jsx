@@ -40,6 +40,7 @@ import ElderlyPrintForm from './ElderlyPrintForm';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { elderlyApi } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
+const { ipcRenderer } = window.require('electron');
 
 const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh }) => {
   const [selectedElderly, setSelectedElderly] = useState(null);
@@ -59,9 +60,12 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
     setOpenDetailDialog(true);
   };
 
-  const handlePrint = (elderly) => {
-    setSelectedElderly(elderly);
-    setOpenPrintForm(true);
+  const handlePrint = async (elderly) => {
+    try {
+      await ipcRenderer.invoke('print-elderly-info', elderly);
+    } catch (error) {
+      console.error('Lỗi khi in:', error);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -221,9 +225,12 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
           onClick={() => handleEdit(params.row)}
         />,
         <GridActionsCellItem
-          icon={<PrintIcon />}
+          icon={<IconButton onClick={() => handlePrint(params.row)}>
+            <Tooltip title="In phiếu thông tin">
+              <PrintIcon />
+            </Tooltip>
+          </IconButton>}
           label="In"
-          onClick={() => handlePrint(params.row)}
         />,
         <GridActionsCellItem
           icon={<DeleteIcon />}
