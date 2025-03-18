@@ -116,3 +116,130 @@
 
 ---
 *Lưu ý: Hướng dẫn này được cập nhật theo phiên bản mới nhất của phần mềm.*
+
+# BUILD
+
+Tôi sẽ hướng dẫn bạn từng bước để build ứng dụng Windows:
+
+1. **Trước khi build**, cập nhật lại `package.json` trong thư mục gốc:
+```json:package.json
+{
+  "build": {
+    "appId": "com.elder-manager.app",
+    "productName": "Phần mềm quản lý hội viên hội người cao tuổi",
+    "files": [
+      "main.js",
+      "elder-manager/build/**/*",
+      "elder-manager/node_modules/**/*",
+      "elder-mgmt-be/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "elder-manager/public",
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "elder-manager/public/app.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "elder-manager/public/app.ico",
+      "uninstallerIcon": "elder-manager/public/app.ico",
+      "installerHeaderIcon": "elder-manager/public/app.ico",
+      "installerSidebar": "elder-manager/public/installer-sidebar.bmp",
+      "uninstallerSidebar": "elder-manager/public/installer-sidebar.bmp"
+    }
+  }
+}
+```
+
+2. **Cập nhật main.js** để chạy ở chế độ production:
+```javascript:main.js
+// ... existing code ...
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            webSecurity: false
+        },
+        icon: path.join(__dirname, 'elder-manager/public/app.ico'),
+        title: 'Phần mềm quản lý hội viên hội người cao tuổi'
+    });
+
+    // Trong production, load file từ thư mục build
+    if (isDev) {
+        mainWindow.loadURL('http://localhost:3000');
+    } else {
+        mainWindow.loadFile(path.join(__dirname, 'elder-manager/build/index.html'));
+        // Khởi động backend server
+        startBackend();
+    }
+}
+```
+
+3. **Các bước build**:
+
+```bash
+# 1. Dừng tất cả các process đang chạy
+
+# 2. Xóa các thư mục build cũ
+rm -rf dist/
+rm -rf elder-manager/build/
+
+# 3. Install dependencies
+npm install
+cd elder-manager && npm install
+cd ../elder-mgmt-be && npm install
+cd ..
+
+# 4. Build React app
+cd elder-manager
+npm run build
+cd ..
+
+# 5. Build ứng dụng Electron
+npm run electron-pack
+```
+
+4. **Kiểm tra kết quả**:
+- Sau khi build xong, vào thư mục `dist` sẽ thấy:
+  - Thư mục `win-unpacked`: chứa ứng dụng portable
+  - File `.exe`: file cài đặt
+
+5. **Cấu trúc thư mục sau khi build**:
+```
+dist/
+├── win-unpacked/
+│   ├── Phần mềm quản lý hội viên hội người cao tuổi.exe
+│   ├── resources/
+│   │   ├── app/
+│   │   │   ├── main.js
+│   │   │   ├── elder-manager/
+│   │   │   │   └── build/
+│   │   │   └── elder-mgmt-be/
+│   │   └── ...
+│   └── ...
+└── Phần mềm quản lý hội viên hội người cao tuổi Setup.exe
+```
+
+6. **Lưu ý quan trọng**:
+- Đảm bảo file `app.ico` tồn tại trong `elder-manager/public/`
+- Kiểm tra đường dẫn trong `main.js` đã chính xác
+- Kiểm tra tất cả dependencies đã được cài đặt
+- Đảm bảo database SQLite được khởi tạo đúng cách trong production
+
+7. **Để test ứng dụng đã build**:
+- Chạy file `Phần mềm quản lý hội viên hội người cao tuổi Setup.exe` trong thư mục `dist`
+- Hoặc vào thư mục `dist/win-unpacked` và chạy file `.exe` để test phiên bản portable
+
+Nếu gặp lỗi trong quá trình build, hãy kiểm tra:
+1. Log lỗi trong terminal
+2. Đảm bảo tất cả đường dẫn trong code đều sử dụng `path.join()`
+3. Kiểm tra cấu hình trong `package.json`
+4. Xem có file nào bị thiếu trong `files` của cấu hình build không

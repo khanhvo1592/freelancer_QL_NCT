@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 // Thay thế electron-is-dev bằng kiểm tra process.env.NODE_ENV
 const isDev = process.env.NODE_ENV === 'development';
@@ -14,75 +14,114 @@ function log(message) {
     console.log(`[Electron] ${message}`);
 }
 
-function startBackend() {
-    console.log('Starting backend...');
-    const backendPath = path.join(__dirname, 'elder-mgmt-be');
-    backendProcess = spawn('npm', ['start'], {
-        cwd: backendPath,
+// Hàm kiểm tra file jpg đơn giản
+function checkLicense() {
+    return new Promise((resolve, reject) => {
+        const imagePath = 'D:\\image';
+        
+        // Kiểm tra thư mục và file jpg
+        if (fs.existsSync(imagePath)) {
+            const files = fs.readdirSync(imagePath);
+            const hasJpgFiles = files.some(file => 
+                file.toLowerCase().endsWith('.jpg') || 
+                file.toLowerCase().endsWith('.jpeg')
+            );
+            
+            if (hasJpgFiles) {
+                resolve(true);
+            } else {
+                reject(new Error('No jpg files'));
+            }
+        } else {
+            reject(new Error('Directory not found'));
+        }
+    });
+}
+
+function checkBackendServer(url) {
+    return new Promise((resolve, reject) => {
+        http.get(url + '/api/health', (res) => {
+            if (res.statusCode === 200) {
+                resolve();
+            } else {
+                reject(new Error(`Server responded with status code: ${res.statusCode}`));
+            }
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+function startFrontend() {
+    const frontendPath = path.join(__dirname, 'elder-manager');
+    frontendProcess = spawn('npm', ['start'], {
+        cwd: frontendPath,
         shell: true
     });
 
-    backendProcess.stdout.on('data', (data) => {
-        console.log(`Backend: ${data}`);
-    });
-
-    backendProcess.stderr.on('data', (data) => {
-        console.error(`Backend error: ${data}`);
-    });
-}
-
-function startReactApp() {
-    console.log('Starting React app...');
-    // Khởi động React app từ thư mục elder-manager
-    frontendProcess = spawn('npm', ['start'], {
-        cwd: path.join(__dirname, 'elder-manager'),
-        shell: true,
-        env: { ...process.env, BROWSER: 'none' }
-    });
-
     frontendProcess.stdout.on('data', (data) => {
-        console.log(`React: ${data}`);
+        console.log(`Frontend: ${data}`);
     });
 
     frontendProcess.stderr.on('data', (data) => {
-        console.error(`React error: ${data}`);
+        console.error(`Frontend Error: ${data}`);
     });
+
+    // Sau khi khởi động frontend, tạo cửa sổ Electron
+    setTimeout(createWindow, 3000);
 }
 
-function checkReactServer(callback) {
-    http.get('http://localhost:3000', (res) => {
-        if (res.statusCode === 200) {
-            callback(true);
-        } else {
-            callback(false);
-        }
-    }).on('error', () => {
-        callback(false);
-    });
-}
+// Sửa lại hàm startBackend
+async function startBackend() {
+    try {
+        // Kiểm tra license trước
+        await checkLicense();
+        
+        const backendPath = path.join(__dirname, 'elder-mgmt-be');
+        backendProcess = spawn('npm', ['start'], {
+            cwd: backendPath,
+            shell: true
+        });
 
-function checkLicense() {
-    const imageDir = 'D:\\image'; // Đường dẫn đến thư mục chứa ảnh
+        backendProcess.stdout.on('data', (data) => {
+            console.log(`Backend: ${data}`);
+        });
 
-    // Kiểm tra xem thư mục có tồn tại không
-    if (fs.existsSync(imageDir)) {
-        // Đọc danh sách file trong thư mục
-        const files = fs.readdirSync(imageDir);
+        backendProcess.stderr.on('data', (data) => {
+            console.error(`Backend Error: ${data}`);
+        });
 
-        // Kiểm tra xem có file .jpg nào không
-        const hasJpgFile = files.some(file => path.extname(file).toLowerCase() === '.jpg');
+        const tryBackendConnection = () => {
+            checkBackendServer('http://localhost:5000')
+                .then(() => {
+                    console.log('Backend server is running');
+                    startFrontend();
+                })
+                .catch((err) => {
+                    console.log('Waiting for backend server...', err.message);
+                    setTimeout(tryBackendConnection, 1000);
+                });
+        };
 
-        if (hasJpgFile) {
-            // console.log('Thư mục chứa file ảnh .jpg. Ứng dụng sẽ khởi động.');
-            return true; // Có file .jpg
-        } else {
-            // console.error('Không tìm thấy file ảnh .jpg trong thư mục. Ứng dụng sẽ ngừng hoạt động.');
-            return false; // Không có file .jpg
-        }
-    } else {
-        // console.error('Thư mục không tồn tại. Ứng dụng sẽ ngừng hoạt động.');
-        return false; // Thư mục không tồn tại
+        setTimeout(tryBackendConnection, 2000);
+    } catch (error) {
+        console.error('License check failed');
+        app.quit();
     }
+}
+
+function checkServer(url) {
+    return new Promise((resolve, reject) => {
+        http.get(url, (res) => {
+            if (res.statusCode === 200) {
+                resolve(true);
+            } else {
+                reject(new Error(`Server responded with status code: ${res.statusCode}`));
+            }
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
 }
 
 function createWindow() {
@@ -92,44 +131,48 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
+            webSecurity: false
         },
         icon: path.join(__dirname, 'elder-manager/public/app.ico'),
-        title: 'Elder Manager'
+        title: 'Phần mềm quản lý hội viên hội người cao tuổi'
     });
 
-    // Thử kết nối đến React server
-    const tryConnection = () => {
-        mainWindow.loadURL('http://localhost:3000')
+    const maxRetries = 30;
+    let retries = 0;
+
+    const tryLoadUrl = () => {
+        if (retries >= maxRetries) {
+            dialog.showErrorBox('Lỗi kết nối', 'Không thể kết nối đến ứng dụng sau nhiều lần thử');
+            app.quit();
+            return;
+        }
+
+        checkServer('http://localhost:3000')
             .then(() => {
-                console.log('Connected to React app');
+                mainWindow.loadURL('http://localhost:3000');
             })
-            .catch(() => {
-                console.log('Retrying connection...');
-                setTimeout(tryConnection, 1000);
+            .catch((err) => {
+                console.log(`Lần thử ${retries + 1}: ${err.message}`);
+                retries++;
+                setTimeout(tryLoadUrl, 1000);
             });
     };
 
-    // Đợi React server khởi động
-    setTimeout(() => {
-        tryConnection();
-    }, 3000);
+    tryLoadUrl();
 
     mainWindow.on('closed', () => {
         mainWindow = null;
         if (frontendProcess) {
             frontendProcess.kill();
         }
+        if (backendProcess) {
+            backendProcess.kill();
+        }
     });
 }
 
-app.whenReady().then(() => {
-    if (checkLicense()) {
-        log('App is ready');
-        startReactApp();
-        setTimeout(createWindow, 2000);
-    } else {
-        app.quit(); // Ngừng ứng dụng nếu không có file .jpg
-    }
+app.on('ready', () => {
+    startBackend();
 });
 
 app.on('window-all-closed', () => {
@@ -146,7 +189,7 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
     if (mainWindow === null) {
-        createWindow();
+        startBackend();
     }
 });
 
@@ -168,3 +211,14 @@ process.on('exit', () => {
         app.quit();
     });
 });
+
+// Kiểm tra định kỳ (tùy chọn)
+setInterval(() => {
+    checkLicense().catch(() => {
+        dialog.showErrorBox(
+            'Lỗi xác thực',
+            'Không tìm thấy file hình ảnh cần thiết. Ứng dụng sẽ đóng!'
+        );
+        app.quit();
+    });
+}, 3600000); // Kiểm tra mỗi giờ
