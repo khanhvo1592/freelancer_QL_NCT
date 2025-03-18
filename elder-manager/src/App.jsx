@@ -8,6 +8,10 @@ import ElderlyList from './pages/ElderlyList';
 import Statistics from './pages/Statistics';
 import Settings from './pages/Settings';
 import './styles/global.css';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
 
 // Tạo theme với ngôn ngữ tiếng Việt
 const theme = createTheme({

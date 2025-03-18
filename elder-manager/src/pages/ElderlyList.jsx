@@ -278,7 +278,10 @@ const ElderlyList = () => {
           </Grid>
           
           <Grid item xs={12} sm={6} md={1.5}>
-            <PrintReport selectedYear={selectedYear} elderlyData={elderlyData} />
+            <PrintReport 
+              data={filteredData}
+              selectedYear={selectedYear}
+            />
           </Grid>
           
           <Grid item xs={12} sm={6} md={1.5}>

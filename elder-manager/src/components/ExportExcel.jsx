@@ -5,43 +5,41 @@ import * as XLSX from 'xlsx';
 
 const ExportExcel = ({ data, selectedYear }) => {
   const handleExport = () => {
-    // Chuẩn bị dữ liệu cho excel
-    const excelData = data.map(item => ({
-      'ID': item.id,
-      'Họ và tên': item.name,
-      [`Tuổi năm ${selectedYear}`]: item.projectedAge,
-      'Địa chỉ': item.address,
-      'Số điện thoại': item.phone || '',
-      'Trạng thái': item.deceased ? 'Đã mất' : 'Còn sống',
-      'Ngày mất': item.deceased ? (item.deceasedDate || 'Không rõ') : '',
-      'Nhóm tuổi': item.ageGroup
-    }));
+    // Tạo dữ liệu cho file Excel
+    const excelData = data.map(person => {
+      const birthDate = new Date(person.dateOfBirth);
+      const age = selectedYear - birthDate.getFullYear();
 
-    // Tạo workbook và worksheet
+      return {
+        'Họ và tên': person.name || '',
+        'Ngày sinh': birthDate.toLocaleDateString('vi-VN'),
+        [`Tuổi ${selectedYear}`]: age,
+        'Địa chỉ': person.address || '',
+        'Số điện thoại': person.phone || '',
+        'Trạng thái': person.deceased ? 'Đã mất' : 'Còn sống'
+      };
+    });
+
+    // Tạo workbook mới
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelData);
 
     // Điều chỉnh độ rộng cột
     const colWidths = [
-      { wch: 5 },  // ID
-      { wch: 25 }, // Họ và tên
-      { wch: 15 }, // Tuổi năm xxxx
+      { wch: 30 }, // Họ và tên
+      { wch: 15 }, // Ngày sinh
+      { wch: 10 }, // Tuổi
       { wch: 40 }, // Địa chỉ
       { wch: 15 }, // Số điện thoại
-      { wch: 12 }, // Trạng thái
-      { wch: 15 }, // Ngày mất
-      { wch: 15 }, // Nhóm tuổi
+      { wch: 12 }  // Trạng thái
     ];
     ws['!cols'] = colWidths;
 
     // Thêm worksheet vào workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách người cao tuổi');
-
-    // Tạo tên file với timestamp
-    const fileName = `danh-sach-nguoi-cao-tuoi-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách');
 
     // Xuất file
-    XLSX.writeFile(wb, fileName);
+    XLSX.writeFile(wb, `Danh-sach-nguoi-cao-tuoi-${selectedYear}.xlsx`);
   };
 
   return (
