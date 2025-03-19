@@ -40,7 +40,9 @@ import ElderlyPrintForm from './ElderlyPrintForm';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { elderlyApi } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
-const { ipcRenderer } = window.require('electron');
+
+// Safe way to access electron
+const ipcRenderer = window.electron?.ipcRenderer;
 
 const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh }) => {
   const [selectedElderly, setSelectedElderly] = useState(null);
@@ -203,7 +205,11 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
-        <Typography noWrap>{params.value}</Typography>
+        <Tooltip title={params.value || ''} placement="top">
+          <Typography sx={{ whiteSpace: 'normal', lineHeight: 1.2 }}>
+            {params.value}
+          </Typography>
+        </Tooltip>
       )
     },
     { 
@@ -223,14 +229,6 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
           icon={<EditIcon />}
           label="Sửa"
           onClick={() => handleEdit(params.row)}
-        />,
-        <GridActionsCellItem
-          icon={<IconButton onClick={() => handlePrint(params.row)}>
-            <Tooltip title="In phiếu thông tin">
-              <PrintIcon />
-            </Tooltip>
-          </IconButton>}
-          label="In"
         />,
         <GridActionsCellItem
           icon={<DeleteIcon />}

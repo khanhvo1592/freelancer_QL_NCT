@@ -49,6 +49,7 @@
     ]
   },
   "dependencies": {
-    "pdfmake": "^0.2.7"
+    "pdfmake": "^0.2.7",
+    "react-to-print": "^3.0.5"
   }
 }

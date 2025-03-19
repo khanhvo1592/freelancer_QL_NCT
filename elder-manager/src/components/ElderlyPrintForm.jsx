@@ -18,13 +18,60 @@ import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import dayjs from 'dayjs';
-import { useReactToPrint } from 'react-to-print';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 import generateElderlyWordDocument from '../utils/wordGenerator';
+import { useReactToPrint } from 'react-to-print';
+
+// Configure pdfMake
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const defaultAvatarUrl = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 
+// Function to convert image URL to base64
+const getBase64FromUrl = async (url) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Return the complete data URL
+        resolve(reader.result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    return null;
+  }
+};
+
 const ElderlyPrintForm = ({ open, onClose, elderly }) => {
   const componentRef = useRef(null);
+  const [photoBase64, setPhotoBase64] = useState(null);
+
+  // Load and convert image when component mounts or elderly changes
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        let imageUrl;
+        if (elderly?.photoUrl) {
+          imageUrl = `http://localhost:5000${elderly.photoUrl}`;
+        } else {
+          imageUrl = defaultAvatarUrl;
+        }
+        const base64 = await getBase64FromUrl(imageUrl);
+        if (base64) {
+          setPhotoBase64(base64);
+        }
+      } catch (error) {
+        console.error('Error loading image:', error);
+      }
+    };
+    loadImage();
+  }, [elderly]);
 
   // Thêm style in ấn vào head khi component mount
   useEffect(() => {
@@ -34,39 +81,47 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
       @media print {
         @page {
           size: A4 portrait;
-          margin: 15mm;
+          margin: 10mm 5mm 10mm 10mm;
         }
-        
+
         body * {
           visibility: hidden;
         }
-        
-        #elder-print-content, #elder-print-content * {
-          visibility: visible;
+
+        #elder-print-content,
+        #elder-print-content * {
+          visibility: visible !important;
+          color: black !important;
         }
-        
+
         #elder-print-content {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 210mm !important;
+          min-height: 297mm !important;
+          margin: 0 !important;
+          padding: 10mm 5mm 10mm 10mm !important;
         }
-        
-        /* Điều chỉnh checkbox để không bị chồng lấp */
-        .checkbox-empty {
-          display: inline-block;
-          width: 13px;
-          height: 13px;
-          border: 1px solid black;
-          margin-right: 5px;
-          position: relative;
-          background-color: white;
+
+        .MuiDialog-root {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
         }
-        
-        /* Ẩn các phần không cần thiết */
+
+        .MuiDialog-container {
+          position: static !important;
+          transform: none !important;
+        }
+
+        .MuiDialog-paper {
+          margin: 0 !important;
+          box-shadow: none !important;
+        }
+
         .MuiDialogTitle-root,
-        .MuiDialogActions-root,
-        button {
+        .MuiDialogActions-root {
           display: none !important;
         }
       }
@@ -94,15 +149,254 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
     }
   };
 
-  // Cập nhật hàm in để đảm bảo tất cả nội dung được hiển thị
-  const handlePrintDirect = () => {
-    console.log('Printing document...');
-    
-    // Đảm bảo tất cả nội dung đã được render
-    setTimeout(() => {
-      window.print();
-    }, 300);
+  const generatePdfDefinition = () => {
+    if (!photoBase64) {
+      console.error('Photo not loaded yet');
+      return null;
+    }
+
+    return {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [ 40, 30, 40, 40 ],
+      content: [
+        {
+          columns: [
+            {
+              width: '35%',
+              stack: [
+                {
+                  image: photoBase64,
+                  width: 150,
+                  height: 200,
+                  alignment: 'center'
+                }
+              ]
+            },
+            {
+              width: '65%',
+              stack: [
+                { text: 'I. Thông tin cơ bản của công dân', style: 'sectionHeader' },
+                { text: `Họ và tên: ${elderly?.name || ''}`, margin: [0, 5] },
+                { text: `Ngày tháng năm sinh: ${dayjs(elderly?.dateOfBirth).format('DD/MM/YYYY')}`, margin: [0, 5] },
+                { text: `Giới tính: ${elderly?.gender || ''}`, margin: [0, 5] },
+                { text: `Nơi đăng ký khai sinh: ${elderly?.address || ''}`, margin: [0, 5] },
+                { text: `Nơi đăng ký thường trú: ${elderly?.address || ''}`, margin: [0, 5] }
+              ]
+            }
+          ]
+        },
+        { text: `Tham gia hội NCT: ${elderly?.joinDate ? 'Có' : 'Không'}`, margin: [0, 10] },
+        { text: `Số thẻ: ${elderly?.cardNumber || ''}`, margin: [0, 5] },
+        { text: `Ngày cấp: ${elderly?.cardIssueDate ? dayjs(elderly.cardIssueDate).format('DD/MM/YYYY') : ''}`, margin: [0, 5] },
+        { text: `Số điện thoại: ${elderly?.phone || ''}`, margin: [0, 5] },
+        { text: 'II. Thông tin thuộc Hội Người cao tuổi', style: 'sectionHeader', margin: [0, 10] }
+      ],
+      styles: {
+        sectionHeader: {
+          fontSize: 14,
+          bold: true,
+          margin: [0, 10, 0, 5]
+        }
+      },
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 12,
+        lineHeight: 1.3
+      }
+    };
   };
+
+  const handlePrint = useCallback(() => {
+    try {
+      // Clear any text selection
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+        document.getSelection()?.empty();
+      }
+
+      // Remove focus from any element
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      // Check if we're in Electron environment
+      if (window.electron?.ipcRenderer) {
+        console.log('Using Electron print API');
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          throw new Error('Could not open print window');
+        }
+
+        // Clone the content to print
+        const contentToPrint = componentRef.current.cloneNode(true);
+        
+        // Replace image with a frame
+        const imgContainer = contentToPrint.querySelector('div[style*="border: 1px solid #000"]');
+        if (imgContainer) {
+          imgContainer.innerHTML = `
+            <div style="
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 1px dashed #000;
+              background-color: #f5f5f5;
+              color: #666;
+              font-size: 12pt;
+              text-align: center;
+              padding: 10px;
+            ">
+              Ảnh 3x4
+            </div>
+          `;
+        }
+
+        // Write content to print window
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Print</title>
+              <style>
+                @page {
+                  size: A4 portrait;
+                  margin: 10mm 5mm 10mm 10mm;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  background-color: white;
+                }
+                #elder-print-content {
+                  width: 210mm;
+                  min-height: 297mm;
+                  padding: 10mm 5mm 10mm 10mm;
+                  margin: 0;
+                  background-color: white;
+                }
+              </style>
+            </head>
+            <body>
+              ${contentToPrint.outerHTML}
+            </body>
+          </html>
+        `);
+
+        // Wait for content to load
+        printWindow.document.close();
+
+        // Send print command to main process with full options
+        window.electron.ipcRenderer.send('print-to-pdf', {
+          silent: false,
+          printBackground: true,
+          deviceWidth: '210mm',
+          deviceHeight: '297mm',
+          margins: {
+            top: 10,
+            bottom: 10,
+            left: 10,
+            right: 5
+          },
+          pageSize: 'A4',
+          orientation: 'portrait',
+          color: true,
+          copies: 1,
+          collate: true,
+          duplex: false,
+          dpi: 300,
+          showPrintDialog: true,
+          showPageSetupDialog: true
+        });
+
+        // Listen for print success/failure
+        const handlePrintSuccess = () => {
+          console.log('Print successful');
+          window.electron.ipcRenderer.removeListener('print-success', handlePrintSuccess);
+          window.electron.ipcRenderer.removeListener('print-error', handlePrintError);
+          setTimeout(() => {
+            printWindow.close();
+          }, 1000);
+        };
+
+        const handlePrintError = (error) => {
+          console.error('Print failed:', error);
+          window.electron.ipcRenderer.removeListener('print-success', handlePrintSuccess);
+          window.electron.ipcRenderer.removeListener('print-error', handlePrintError);
+          alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
+          printWindow.close();
+        };
+
+        window.electron.ipcRenderer.on('print-success', handlePrintSuccess);
+        window.electron.ipcRenderer.on('print-error', handlePrintError);
+
+      } else {
+        console.log('Using browser print API');
+        window.print();
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
+    }
+  }, []);
+
+  // Add noselect style
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+      }
+      
+      .no-select, button, .MuiButton-root, .MuiIconButton-root {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+
+      @media print {
+        body * {
+          visibility: hidden;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+        }
+
+        #elder-print-content,
+        #elder-print-content * {
+          visibility: visible !important;
+        }
+
+        #elder-print-content {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          background-color: white !important;
+        }
+
+        button, .MuiButton-root, .MuiIconButton-root {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   if (!elderly) return null;
 
@@ -184,12 +478,23 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
       ref={ref} 
       id="elder-print-content" 
       style={{ 
-        width: '100%', 
-        padding: '15mm',
+        width: '210mm',
+        minHeight: '297mm',
+        padding: '10mm 5mm 10mm 10mm',
+        margin: '0 auto',
+        backgroundColor: 'white',
+        color: 'black',
         fontFamily: '"Times New Roman", Times, serif',
-        fontSize: '12pt',
+        fontSize: '14.4pt',
         lineHeight: '1.3',
-        backgroundColor: 'white'
+        position: 'relative',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        cursor: 'default',
+        pointerEvents: 'none'
       }}
     >
       <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none' }}>
@@ -207,17 +512,23 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
+                backgroundColor: '#f5f5f5'
               }}>
-                <img 
-                  src={elderly.photoUrl ? `http://localhost:5000${elderly.photoUrl}` : defaultAvatarUrl}
-                  alt="Elderly photo"
-                  style={{
-                    width: '50mm',
-                    height: '70mm',
-                    objectFit: 'cover'
-                  }}
-                />
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px dashed #000',
+                  color: '#666',
+                  fontSize: '12pt',
+                  textAlign: 'center',
+                  padding: '10px'
+                }}>
+                  Ảnh 3x4
+                </div>
               </div>
             </td>
             <td style={{ 
@@ -225,7 +536,7 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
               verticalAlign: 'middle',
               paddingLeft: '10px'
             }}>
-              <p style={{ fontWeight: 'bold', margin: '0 0 10px 0' }}>
+              <p style={{ fontWeight: 'bold', margin: '0 0 10px 0', fontSize: '16.8pt' }}>
                 I. Thông tin cơ bản của công dân
               </p>
               
@@ -254,7 +565,7 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
       </table>
       
       <p style={{ margin: '10px 0 5px 0' }}>
-        <span style={{ fontWeight: 'bold' }}>Tham gia hội NCT:</span> {elderly?.joinDate ? 'Có' : ''}
+        <span style={{ fontWeight: 'bold' }}>Tham gia hội NCT:</span> {elderly?.joinDate ? '' : ''}
       </p>
       
       <p style={{ margin: '0 0 5px 0' }}>
@@ -269,7 +580,7 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
         <span style={{ fontWeight: 'bold' }}>Số điện thoại:</span> {elderly?.phone || ''}
       </p>
       
-      <p style={{ fontWeight: 'bold', margin: '10px 0 10px 0' }}>
+      <p style={{ fontWeight: 'bold', margin: '10px 0 10px 0', fontSize: '16.8pt' }}>
         II. Thông tin thuộc Hội Người cao tuổi
       </p>
       
@@ -570,55 +881,109 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
   ));
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
-            Phiếu thông tin người cao tuổi
-          </Typography>
-          <Box>
-            <IconButton onClick={handlePrintDirect} color="primary" sx={{ mr: 1 }}>
-              <PrintIcon />
-            </IconButton>
-            <IconButton onClick={handleExportWord} color="primary" sx={{ mr: 1 }}>
-              <DownloadIcon />
-            </IconButton>
-            <IconButton onClick={onClose}>
-              <CloseIcon />
-            </IconButton>
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="md" 
+        fullWidth
+        className="no-select"
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" className="no-select">
+              Phiếu thông tin người cao tuổi
+            </Typography>
+            <Box className="no-select">
+              <IconButton 
+                onClick={handlePrint} 
+                color="primary" 
+                sx={{ 
+                  mr: 1,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                className="no-select"
+              >
+                <PrintIcon />
+              </IconButton>
+              <IconButton 
+                onClick={handleExportWord} 
+                color="primary" 
+                sx={{ 
+                  mr: 1,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                className="no-select"
+              >
+                <DownloadIcon />
+              </IconButton>
+              <IconButton 
+                onClick={onClose}
+                sx={{ 
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                className="no-select"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
           </Box>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <PrintContent ref={componentRef} />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Đóng</Button>
-        <Button 
-          onClick={handlePrintDirect}
-          variant="contained" 
-          color="primary" 
-          startIcon={<PrintIcon />}
-          sx={{ mr: 1 }}
-        >
-          In
-        </Button>
-        <Button 
-          onClick={handleExportWord} 
-          variant="contained" 
-          color="primary" 
-          startIcon={<DownloadIcon />}
-        >
-          Xuất Word
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </DialogTitle>
+        <DialogContent>
+          <PrintContent ref={componentRef} />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={onClose}
+            sx={{ 
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            className="no-select"
+          >
+            Đóng
+          </Button>
+          <Button 
+            onClick={handlePrint}
+            variant="contained" 
+            color="primary" 
+            startIcon={<PrintIcon />}
+            sx={{ 
+              mr: 1,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            className="no-select"
+          >
+            In phiếu
+          </Button>
+          <Button 
+            onClick={handleExportWord} 
+            variant="contained" 
+            color="primary" 
+            startIcon={<DownloadIcon />}
+            sx={{ 
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            className="no-select"
+          >
+            Xuất Word
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
-export default ElderlyPrintForm; 
+export default ElderlyPrintForm;

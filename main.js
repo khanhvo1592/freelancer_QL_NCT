@@ -129,9 +129,9 @@ function createWindow() {
         width: 1200,
         height: 800,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            webSecurity: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'elder-manager/public/preload.js')
         },
         icon: path.join(__dirname, 'elder-manager/public/app.ico'),
         title: 'Phần mềm quản lý hội viên hội người cao tuổi'

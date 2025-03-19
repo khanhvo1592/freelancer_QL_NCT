@@ -1,12 +1,10 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 
-// Import pdfMake một cách khác
-const pdfMake = require('pdfmake/build/pdfmake');
-const pdfFonts = require('pdfmake/build/vfs_fonts');
-
-// Khởi tạo pdfMake với fonts
+// Configure pdfMake with default fonts
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const PrintReport = ({ data, selectedYear }) => {
