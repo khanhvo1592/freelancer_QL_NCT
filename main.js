@@ -1,6 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
-// Thay thế electron-is-dev bằng kiểm tra process.env.NODE_ENV
 const isDev = process.env.NODE_ENV === 'development';
 const { spawn } = require('child_process');
 const http = require('http');
@@ -8,32 +7,48 @@ const fs = require('fs');
 
 let mainWindow;
 let backendProcess;
-let frontendProcess;
 
 function log(message) {
     console.log(`[Electron] ${message}`);
 }
 
+function showLicenseInstructions() {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Hướng dẫn xác thực',
+        message: 'Để sử dụng ứng dụng, bạn cần có file hình ảnh xác thực.',
+        detail: 'Vui lòng copy file .jpg vào thư mục D:\\image\n\nSau khi copy xong, khởi động lại ứng dụng.',
+        buttons: ['Đóng'],
+        defaultId: 0
+    });
+}
+
 // Hàm kiểm tra file jpg đơn giản
 function checkLicense() {
     return new Promise((resolve, reject) => {
-        const imagePath = 'D:\\image';
-        
-        // Kiểm tra thư mục và file jpg
-        if (fs.existsSync(imagePath)) {
-            const files = fs.readdirSync(imagePath);
-            const hasJpgFiles = files.some(file => 
+        try {
+            const dImagePath = 'D:\\image';
+            
+            // Nếu không có thư mục D:\image, thoát app
+            if (!fs.existsSync(dImagePath)) {
+                app.quit();
+                return;
+            }
+
+            // Kiểm tra file jpg trong D:\image
+            const dImageFiles = fs.readdirSync(dImagePath);
+            const hasJpgInDImage = dImageFiles.some(file => 
                 file.toLowerCase().endsWith('.jpg') || 
                 file.toLowerCase().endsWith('.jpeg')
             );
-            
-            if (hasJpgFiles) {
+
+            if (hasJpgInDImage) {
                 resolve(true);
             } else {
-                reject(new Error('No jpg files'));
+                app.quit();
             }
-        } else {
-            reject(new Error('Directory not found'));
+        } catch (error) {
+            app.quit();
         }
     });
 }
@@ -52,119 +67,123 @@ function checkBackendServer(url) {
     });
 }
 
-function startFrontend() {
-    const frontendPath = path.join(__dirname, 'elder-manager');
-    frontendProcess = spawn('npm', ['start'], {
-        cwd: frontendPath,
-        shell: true
-    });
+function startBackend() {
+    // Kiểm tra license trước khi khởi động backend
+    checkLicense().then(() => {
+        try {
+            // Trong production, sử dụng đường dẫn tới thư mục app
+            const backendPath = isDev 
+                ? path.join(__dirname, 'elder-mgmt-be')
+                : path.join(__dirname, 'app', 'elder-mgmt-be');
 
-    frontendProcess.stdout.on('data', (data) => {
-        console.log(`Frontend: ${data}`);
-    });
+            const serverScript = path.join(backendPath, 'server.js');
+            console.log('Backend path:', backendPath);
+            console.log('Server script path:', serverScript);
 
-    frontendProcess.stderr.on('data', (data) => {
-        console.error(`Frontend Error: ${data}`);
-    });
-
-    // Sau khi khởi động frontend, tạo cửa sổ Electron
-    setTimeout(createWindow, 3000);
-}
-
-// Sửa lại hàm startBackend
-async function startBackend() {
-    try {
-        // Kiểm tra license trước
-        await checkLicense();
-        
-        const backendPath = path.join(__dirname, 'elder-mgmt-be');
-        backendProcess = spawn('npm', ['start'], {
-            cwd: backendPath,
-            shell: true
-        });
-
-        backendProcess.stdout.on('data', (data) => {
-            console.log(`Backend: ${data}`);
-        });
-
-        backendProcess.stderr.on('data', (data) => {
-            console.error(`Backend Error: ${data}`);
-        });
-
-        const tryBackendConnection = () => {
-            checkBackendServer('http://localhost:5000')
-                .then(() => {
-                    console.log('Backend server is running');
-                    startFrontend();
-                })
-                .catch((err) => {
-                    console.log('Waiting for backend server...', err.message);
-                    setTimeout(tryBackendConnection, 1000);
-                });
-        };
-
-        setTimeout(tryBackendConnection, 2000);
-    } catch (error) {
-        console.error('License check failed');
-        app.quit();
-    }
-}
-
-function checkServer(url) {
-    return new Promise((resolve, reject) => {
-        http.get(url, (res) => {
-            if (res.statusCode === 200) {
-                resolve(true);
-            } else {
-                reject(new Error(`Server responded with status code: ${res.statusCode}`));
+            // Kiểm tra file tồn tại
+            if (!fs.existsSync(serverScript)) {
+                console.error(`Cannot find server.js at ${serverScript}`);
+                app.quit();
+                return;
             }
-        }).on('error', (err) => {
-            reject(err);
-        });
+
+            // Sử dụng Node.js từ system
+            const command = process.platform === 'win32' ? 'node.exe' : 'node';
+            
+            backendProcess = spawn(command, [serverScript], {
+                cwd: backendPath,
+                env: {
+                    ...process.env,
+                    NODE_ENV: isDev ? 'development' : 'production',
+                    PATH: process.env.PATH
+                },
+                shell: true,
+                windowsHide: true
+            });
+
+            backendProcess.stdout.on('data', (data) => {
+                console.log(`Backend: ${data}`);
+            });
+
+            backendProcess.stderr.on('data', (data) => {
+                console.error(`Backend Error: ${data}`);
+            });
+
+            backendProcess.on('error', (err) => {
+                console.error('Failed to start backend:', err);
+                app.quit();
+            });
+
+            const tryBackendConnection = () => {
+                checkBackendServer('http://localhost:5000')
+                    .then(() => {
+                        console.log('Backend server is running');
+                        createWindow();
+                    })
+                    .catch((err) => {
+                        console.log('Waiting for backend server...', err.message);
+                        setTimeout(tryBackendConnection, 1000);
+                    });
+            };
+
+            setTimeout(tryBackendConnection, 2000);
+        } catch (error) {
+            console.error('Failed to start backend:', error);
+            app.quit();
+        }
+    }).catch(() => {
+        app.quit();
     });
 }
 
-function createWindow() {
+async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'elder-manager/public/preload.js')
+            preload: path.join(__dirname, 'preload.js')
         },
-        icon: path.join(__dirname, 'elder-manager/public/app.ico'),
+        icon: path.join(__dirname, isDev ? 'elder-manager/public/app.ico' : 'app.ico'),
         title: 'Phần mềm quản lý hội viên hội người cao tuổi'
     });
 
-    const maxRetries = 30;
-    let retries = 0;
-
-    const tryLoadUrl = () => {
-        if (retries >= maxRetries) {
-            dialog.showErrorBox('Lỗi kết nối', 'Không thể kết nối đến ứng dụng sau nhiều lần thử');
+    // Load ứng dụng
+    if (isDev) {
+        console.log('Running in development mode');
+        // Trong development, load từ React dev server
+        try {
+            await mainWindow.loadURL('http://localhost:3000');
+            console.log('Successfully loaded React dev server');
+            // Mở DevTools
+            mainWindow.webContents.openDevTools();
+        } catch (err) {
+            console.error('Failed to load React dev server:', err);
+            dialog.showErrorBox('Development Error', 
+                'Failed to connect to React development server. ' +
+                'Please ensure it is running by executing "cd elder-manager && npm start"');
+            app.quit();
+        }
+    } else {
+        // Trong production, load từ file đã build
+        const indexPath = path.join(__dirname, 'app', 'frontend', 'index.html');
+        console.log('Loading frontend from:', indexPath);
+        if (!fs.existsSync(indexPath)) {
+            console.error('Frontend index.html not found at:', indexPath);
+            dialog.showErrorBox('Error', `Cannot find frontend files at ${indexPath}`);
             app.quit();
             return;
         }
-
-        checkServer('http://localhost:3000')
-            .then(() => {
-                mainWindow.loadURL('http://localhost:3000');
-            })
-            .catch((err) => {
-                console.log(`Lần thử ${retries + 1}: ${err.message}`);
-                retries++;
-                setTimeout(tryLoadUrl, 1000);
-            });
-    };
-
-    tryLoadUrl();
+        mainWindow.loadFile(indexPath).catch(err => {
+            console.error('Error loading frontend:', err);
+            dialog.showErrorBox('Error', `Failed to load frontend: ${err.message}`);
+            app.quit();
+        });
+    }
 
     mainWindow.on('closed', () => {
         mainWindow = null;
-        if (frontendProcess) {
-            frontendProcess.kill();
-        }
         if (backendProcess) {
             backendProcess.kill();
         }
@@ -179,9 +198,6 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         if (backendProcess) {
             backendProcess.kill();
-        }
-        if (frontendProcess) {
-            frontendProcess.kill();
         }
         app.quit();
     }
@@ -198,15 +214,12 @@ process.on('exit', () => {
     if (backendProcess) {
         backendProcess.kill();
     }
-    if (frontendProcess) {
-        frontendProcess.kill();
-    }
 });
 
 ['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(signal => {
     process.on(signal, () => {
-        if (frontendProcess) {
-            frontendProcess.kill();
+        if (backendProcess) {
+            backendProcess.kill();
         }
         app.quit();
     });
@@ -215,146 +228,39 @@ process.on('exit', () => {
 // Kiểm tra định kỳ (tùy chọn)
 setInterval(() => {
     checkLicense().catch(() => {
-        dialog.showErrorBox(
-            'Lỗi xác thực',
-            'Không tìm thấy file hình ảnh cần thiết. Ứng dụng sẽ đóng!'
-        );
         app.quit();
     });
 }, 3600000); // Kiểm tra mỗi giờ
 
 // Thêm xử lý sự kiện in
 ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
-  const printWindow = new BrowserWindow({
-    width: 800,
-    height: 900,
-    title: 'Phiếu thông tin người cao tuổi',
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+    const printWindow = new BrowserWindow({
+        width: 800,
+        height: 900,
+        show: false,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    // Load trang in
+    if (isDev) {
+        await printWindow.loadURL('http://localhost:3000/print');
+    } else {
+        await printWindow.loadFile(path.join(__dirname, 'app', 'frontend', 'index.html'), {
+            hash: 'print'
+        });
     }
-  });
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Phiếu thông tin người cao tuổi</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            font-size: 14px;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-          }
-          .title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-          }
-          .info-group {
-            margin-bottom: 20px;
-          }
-          .info-row {
-            display: flex;
-            margin: 10px 0;
-            border-bottom: 1px dotted #ccc;
-            padding: 5px 0;
-          }
-          .label {
-            width: 200px;
-            font-weight: bold;
-          }
-          .value {
-            flex: 1;
-          }
-          .footer {
-            margin-top: 50px;
-            text-align: right;
-          }
-          .signature-section {
-            margin-top: 40px;
-            display: flex;
-            justify-content: space-between;
-          }
-          .signature-box {
-            text-align: center;
-            width: 200px;
-          }
-          .signature-line {
-            margin-top: 70px;
-            border-top: 1px dotted #000;
-          }
-          @media print {
-            .no-print {
-              display: none;
-            }
-            body {
-              padding: 0;
-              margin: 20px;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">PHIẾU THÔNG TIN NGƯỜI CAO TUỔI</div>
-          <div>Ngày lập phiếu: ${new Date().toLocaleDateString('vi-VN')}</div>
-        </div>
+    // Gửi dữ liệu người cao tuổi đến trang in
+    printWindow.webContents.send('print-data', elderlyData);
 
-        <div class="info-group">
-          <div class="info-row">
-            <div class="label">Họ và tên:</div>
-            <div class="value">${elderlyData.name}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Ngày sinh:</div>
-            <div class="value">${new Date(elderlyData.dateOfBirth).toLocaleDateString('vi-VN')}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Giới tính:</div>
-            <div class="value">${elderlyData.gender === 'male' ? 'Nam' : 'Nữ'}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Địa chỉ:</div>
-            <div class="value">${elderlyData.address}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Số điện thoại:</div>
-            <div class="value">${elderlyData.phone || 'Không có'}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Trạng thái:</div>
-            <div class="value">${elderlyData.deceased ? 'Đã mất' : 'Còn sống'}</div>
-          </div>
-          <div class="info-row">
-            <div class="label">Ghi chú:</div>
-            <div class="value">${elderlyData.notes || ''}</div>
-          </div>
-        </div>
+    // In trang
+    const result = await printWindow.webContents.print({ silent: false, printBackground: true });
+    
+    // Đóng cửa sổ in
+    printWindow.close();
 
-        <div class="signature-section">
-          <div class="signature-box">
-            <div>Người lập phiếu</div>
-            <div class="signature-line"></div>
-          </div>
-          <div class="signature-box">
-            <div>Xác nhận của hội</div>
-            <div class="signature-line"></div>
-          </div>
-        </div>
-
-        <button class="no-print" onclick="window.print()" 
-          style="position: fixed; bottom: 20px; right: 20px; padding: 10px 20px;">
-          In phiếu
-        </button>
-      </body>
-    </html>
-  `;
-
-  await printWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(htmlContent)}`);
+    return result;
 });

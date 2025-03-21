@@ -2,18 +2,22 @@
   "name": "elder-manager-app",
   "version": "1.0.0",
   "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "electron": "^35.0.2",
     "electron-builder": "^25.1.8",
-    "electron-is-dev": "^2.0.0"
+    "electron-is-dev": "^2.0.0",
+    "wait-on": "^7.2.0"
   },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "concurrently \"cd elder-manager && npm start\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
     "build": "cd elder-manager && npm run build",
     "prebuild": "rimraf elder-manager/build",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "electron-pack": "npm run build && electron-builder build --win",
+    "build:portable": "npm run build && electron-builder build --win portable",
     "postinstall": "cd elder-manager && npm install && cd ../elder-mgmt-be && npm install"
   },
   "build": {
@@ -21,32 +25,59 @@
     "productName": "Elder Manager",
     "files": [
       "main.js",
-      "elder-manager/build/**/*",
-      "elder-manager/node_modules/**/*",
-      "elder-mgmt-be/**/*",
+      "preload.js",
       "node_modules/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "elder-mgmt-be",
+        "to": "app/elder-mgmt-be",
+        "filter": [
+          "**/*",
+          "!node_modules/**/*"
+        ]
+      },
+      {
+        "from": "elder-mgmt-be/node_modules",
+        "to": "app/elder-mgmt-be/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "elder-manager/build",
+        "to": "app/frontend",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "elder-manager/public/app.ico",
+        "to": "app.ico"
+      }
     ],
     "directories": {
       "buildResources": "elder-manager/public",
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "elder-manager/public/app.ico"
     },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+    "portable": {
+      "artifactName": "ElderManager.exe",
+      "requestExecutionLevel": "user"
     },
     "asar": false,
-    "forceCodeSigning": false,
-    "extraResources": [
-      {
-        "from": "elder-manager/build",
-        "to": "elder-manager/build"
-      }
-    ]
+    "compression": "maximum",
+    "removePackageScripts": true
   },
   "dependencies": {
     "pdfmake": "^0.2.7",
