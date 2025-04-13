@@ -250,20 +250,11 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
       <DataGrid
         rows={data}
         columns={columns}
-        pageSize={10}
-        rowsPerPageOptions={[10]}
+        pageSize={20}
+        rowsPerPageOptions={[10, 20, 50, 100]}
         disableSelectionOnClick
-        autoHeight
-        disableExtendRowFullWidth
-        initialState={{
-          sorting: {
-            sortModel: [{ field: 'name', sort: 'asc' }],
-          },
-        }}
-        components={{
-          Toolbar: CustomToolbar,
-        }}
         sx={{
+          height: 'calc(100vh - 200px)',
           '& .MuiDataGrid-row': {
             '&:nth-of-type(odd)': {
               backgroundColor: 'action.hover',
@@ -272,6 +263,9 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
           '& .MuiDataGrid-cell': {
             whiteSpace: 'nowrap',
           },
+        }}
+        components={{
+          Toolbar: CustomToolbar,
         }}
       />
 
