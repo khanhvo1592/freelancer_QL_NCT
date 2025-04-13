@@ -9,55 +9,57 @@
     "electron-is-dev": "^2.0.0",
     "wait-on": "^7.2.0"
   },
-  "main": "main.js",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "concurrently \"cd elder-manager && npm start\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
-    "build": "cd elder-manager && npm run build",
-    "prebuild": "rimraf elder-manager/build",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "build:portable": "npm run build && electron-builder build --win portable",
-    "postinstall": "cd elder-manager && npm install && cd ../elder-mgmt-be && npm install"
+    "start": "./node_modules/.bin/electron .",
+    "dev:frontend": "cd frontend && npm start",
+    "dev:backend": "cd backend && npm start",
+    "dev:electron": "wait-on -t 30000 -v http://localhost:3000 http://localhost:5000 && cross-env NODE_ENV=development electron .",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:electron\"",
+    "build": "cd frontend && npm run build",
+    "prebuild": "rimraf frontend/build",
+    "pack": "./node_modules/.bin/electron-builder --dir",
+    "dist": "./node_modules/.bin/electron-builder",
+    "build:portable": "npm run build && ./node_modules/.bin/electron-builder build --win portable",
+    "postinstall": "cd frontend && npm install && cd ../backend && npm install"
   },
   "build": {
     "appId": "com.elder-manager.app",
     "productName": "Elder Manager",
     "files": [
-      "main.js",
-      "preload.js",
+      "electron/**/*",
       "node_modules/**/*"
     ],
     "extraFiles": [
       {
-        "from": "elder-mgmt-be",
-        "to": "app/elder-mgmt-be",
+        "from": "backend",
+        "to": "app/backend",
         "filter": [
           "**/*",
           "!node_modules/**/*"
         ]
       },
       {
-        "from": "elder-mgmt-be/node_modules",
-        "to": "app/elder-mgmt-be/node_modules",
+        "from": "backend/node_modules",
+        "to": "app/backend/node_modules",
         "filter": [
           "**/*"
         ]
       },
       {
-        "from": "elder-manager/build",
+        "from": "frontend/build",
         "to": "app/frontend",
         "filter": [
           "**/*"
         ]
       },
       {
-        "from": "elder-manager/public/app.ico",
+        "from": "frontend/public/app.ico",
         "to": "app.ico"
       }
     ],
     "directories": {
-      "buildResources": "elder-manager/public",
+      "buildResources": "frontend/public",
       "output": "dist"
     },
     "win": {
@@ -69,7 +71,7 @@
           ]
         }
       ],
-      "icon": "elder-manager/public/app.ico"
+      "icon": "frontend/public/app.ico"
     },
     "portable": {
       "artifactName": "ElderManager.exe",

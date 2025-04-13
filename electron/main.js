@@ -12,127 +12,37 @@ function log(message) {
     console.log(`[Electron] ${message}`);
 }
 
-function showLicenseInstructions() {
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Hướng dẫn xác thực',
-        message: 'Để sử dụng ứng dụng, bạn cần có file hình ảnh xác thực.',
-        detail: 'Vui lòng copy file .jpg vào thư mục D:\\image\n\nSau khi copy xong, khởi động lại ứng dụng.',
-        buttons: ['Đóng'],
-        defaultId: 0
-    });
-}
-
-// Hàm kiểm tra file jpg đơn giản
-function checkLicense() {
-    return new Promise((resolve, reject) => {
-        try {
-            const dImagePath = 'D:\\image';
-            
-            // Nếu không có thư mục D:\image, thoát app
-            if (!fs.existsSync(dImagePath)) {
-                app.quit();
-                return;
-            }
-
-            // Kiểm tra file jpg trong D:\image
-            const dImageFiles = fs.readdirSync(dImagePath);
-            const hasJpgInDImage = dImageFiles.some(file => 
-                file.toLowerCase().endsWith('.jpg') || 
-                file.toLowerCase().endsWith('.jpeg')
-            );
-
-            if (hasJpgInDImage) {
-                resolve(true);
-            } else {
-                app.quit();
-            }
-        } catch (error) {
-            app.quit();
-        }
-    });
-}
-
 function checkBackendServer(url) {
+    console.log(`Checking server at ${url}...`);
     return new Promise((resolve, reject) => {
         http.get(url + '/api/health', (res) => {
+            console.log(`Server ${url} responded with status: ${res.statusCode}`);
             if (res.statusCode === 200) {
                 resolve();
             } else {
                 reject(new Error(`Server responded with status code: ${res.statusCode}`));
             }
         }).on('error', (err) => {
+            console.log(`Error checking ${url}:`, err.message);
             reject(err);
         });
     });
 }
 
 function startBackend() {
-    // Kiểm tra license trước khi khởi động backend
-    checkLicense().then(() => {
-        try {
-            // Trong production, sử dụng đường dẫn tới thư mục app
-            const backendPath = isDev 
-                ? path.join(__dirname, 'elder-mgmt-be')
-                : path.join(__dirname, 'app', 'elder-mgmt-be');
-
-            const serverScript = path.join(backendPath, 'server.js');
-            console.log('Backend path:', backendPath);
-            console.log('Server script path:', serverScript);
-
-            // Kiểm tra file tồn tại
-            if (!fs.existsSync(serverScript)) {
-                console.error(`Cannot find server.js at ${serverScript}`);
-                app.quit();
-                return;
-            }
-
-            // Sử dụng Node.js từ system
-            const command = process.platform === 'win32' ? 'node.exe' : 'node';
-            
-            backendProcess = spawn(command, [serverScript], {
-                cwd: backendPath,
-                env: {
-                    ...process.env,
-                    NODE_ENV: isDev ? 'development' : 'production',
-                    PATH: process.env.PATH
-                },
-                shell: true,
-                windowsHide: true
-            });
-
-            backendProcess.stdout.on('data', (data) => {
-                console.log(`Backend: ${data}`);
-            });
-
-            backendProcess.stderr.on('data', (data) => {
-                console.error(`Backend Error: ${data}`);
-            });
-
-            backendProcess.on('error', (err) => {
-                console.error('Failed to start backend:', err);
-                app.quit();
-            });
-
-            const tryBackendConnection = () => {
-                checkBackendServer('http://localhost:5000')
-                    .then(() => {
-                        console.log('Backend server is running');
-                        createWindow();
-                    })
-                    .catch((err) => {
-                        console.log('Waiting for backend server...', err.message);
-                        setTimeout(tryBackendConnection, 1000);
-                    });
-            };
-
-            setTimeout(tryBackendConnection, 2000);
-        } catch (error) {
-            console.error('Failed to start backend:', error);
-            app.quit();
-        }
-    }).catch(() => {
-        app.quit();
+    console.log('Starting application...');
+    // Kiểm tra xem backend đã chạy chưa
+    Promise.all([
+        checkBackendServer('http://localhost:5000'),
+        checkBackendServer('http://localhost:3000')
+    ])
+    .then(() => {
+        console.log('Both frontend and backend are running');
+        createWindow();
+    })
+    .catch((error) => {
+        console.log('Retrying in 1 second...', error.message);
+        setTimeout(startBackend, 1000);
     });
 }
 
@@ -145,7 +55,7 @@ async function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        icon: path.join(__dirname, isDev ? 'elder-manager/public/app.ico' : 'app.ico'),
+        icon: path.join(__dirname, isDev ? '../frontend/public/app.ico' : 'app.ico'),
         title: 'Phần mềm quản lý hội viên hội người cao tuổi'
     });
 
@@ -162,7 +72,7 @@ async function createWindow() {
             console.error('Failed to load React dev server:', err);
             dialog.showErrorBox('Development Error', 
                 'Failed to connect to React development server. ' +
-                'Please ensure it is running by executing "cd elder-manager && npm start"');
+                'Please ensure it is running by executing "cd frontend && npm start"');
             app.quit();
         }
     } else {
@@ -224,13 +134,6 @@ process.on('exit', () => {
         app.quit();
     });
 });
-
-// Kiểm tra định kỳ (tùy chọn)
-setInterval(() => {
-    checkLicense().catch(() => {
-        app.quit();
-    });
-}, 3600000); // Kiểm tra mỗi giờ
 
 // Thêm xử lý sự kiện in
 ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
