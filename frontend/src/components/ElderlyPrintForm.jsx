@@ -250,7 +250,7 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
               text-align: center;
               padding: 10px;
             ">
-              Ảnh 3x4
+              Ảnh 5x7
             </div>
           `;
         }
@@ -527,7 +527,7 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
                   textAlign: 'center',
                   padding: '10px'
                 }}>
-                  Ảnh 3x4
+                  Ảnh 5x7
                 </div>
               </div>
             </td>
