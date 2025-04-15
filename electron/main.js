@@ -1,9 +1,8 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
-const { spawn } = require('child_process');
-const http = require('http');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let backendProcess;
@@ -12,96 +11,96 @@ function log(message) {
     console.log(`[Electron] ${message}`);
 }
 
-function checkBackendServer(url) {
-    console.log(`Checking server at ${url}...`);
-    return new Promise((resolve, reject) => {
-        http.get(url + '/api/health', (res) => {
-            console.log(`Server ${url} responded with status: ${res.statusCode}`);
-            if (res.statusCode === 200) {
-                resolve();
-            } else {
-                reject(new Error(`Server responded with status code: ${res.statusCode}`));
-            }
-        }).on('error', (err) => {
-            console.log(`Error checking ${url}:`, err.message);
-            reject(err);
-        });
-    });
-}
-
 function startBackend() {
-    console.log('Starting application...');
-    // Kiểm tra xem backend đã chạy chưa
-    Promise.all([
-        checkBackendServer('http://localhost:5000'),
-        checkBackendServer('http://localhost:3000')
-    ])
-    .then(() => {
-        console.log('Both frontend and backend are running');
-        createWindow();
-    })
-    .catch((error) => {
-        console.log('Retrying in 1 second...', error.message);
-        setTimeout(startBackend, 1000);
+    if (isDev) {
+        // Trong development mode, backend đã được chạy bởi npm run dev
+        return;
+    }
+
+    const backendPath = path.join(process.resourcesPath, 'app', 'backend');
+    const batPath = path.join(backendPath, 'start-backend.bat');
+
+    if (!fs.existsSync(batPath)) {
+        console.error('Backend start script not found at:', batPath);
+        return;
+    }
+
+    console.log('Starting backend server...');
+    backendProcess = spawn(batPath, [], {
+        cwd: backendPath,
+        shell: true,
+        windowsHide: true,
+        stdio: 'ignore'
     });
+
+    backendProcess.unref();
 }
 
 async function createWindow() {
+    console.log('Creating main window...');
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            webSecurity: false,
+            allowRunningInsecureContent: true
         },
-        icon: path.join(__dirname, isDev ? '../frontend/public/app.ico' : 'app.ico'),
+        icon: path.join(__dirname, isDev ? '../frontend/public/app.ico' : '../frontend/public/app.ico'),
         title: 'Phần mềm quản lý hội viên hội người cao tuổi'
     });
+    console.log('Main window created successfully');
 
     // Load ứng dụng
     if (isDev) {
-        console.log('Running in development mode');
-        // Trong development, load từ React dev server
+        console.log('Running in development mode, attempting to connect to React dev server...');
         try {
             await mainWindow.loadURL('http://localhost:3000');
             console.log('Successfully loaded React dev server');
-            // Mở DevTools
+            console.log('Opening DevTools...');
             mainWindow.webContents.openDevTools();
         } catch (err) {
             console.error('Failed to load React dev server:', err);
+            console.error('Error details:', err.stack);
             dialog.showErrorBox('Development Error', 
                 'Failed to connect to React development server. ' +
-                'Please ensure it is running by executing "cd frontend && npm start"');
+                'Please ensure it is running by executing "cd frontend && npm start"\n\n' +
+                'Error details: ' + err.message);
             app.quit();
         }
     } else {
-        // Trong production, load từ file đã build
-        const indexPath = path.join(__dirname, 'app', 'frontend', 'index.html');
+        // Load from built files
+        const indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'index.html');
         console.log('Loading frontend from:', indexPath);
+        
         if (!fs.existsSync(indexPath)) {
             console.error('Frontend index.html not found at:', indexPath);
             dialog.showErrorBox('Error', `Cannot find frontend files at ${indexPath}`);
             app.quit();
             return;
         }
-        mainWindow.loadFile(indexPath).catch(err => {
-            console.error('Error loading frontend:', err);
-            dialog.showErrorBox('Error', `Failed to load frontend: ${err.message}`);
+
+        try {
+            // Load file with protocol
+            await mainWindow.loadURL(`file://${indexPath}`);
+            console.log('Successfully loaded index.html');
+        } catch (error) {
+            console.error('Failed to load index.html:', error);
+            dialog.showErrorBox('Error', `Failed to load frontend: ${error.message}`);
             app.quit();
-        });
+        }
     }
 
     mainWindow.on('closed', () => {
         mainWindow = null;
-        if (backendProcess) {
-            backendProcess.kill();
-        }
     });
 }
 
 app.on('ready', () => {
     startBackend();
+    createWindow();
 });
 
 app.on('window-all-closed', () => {
@@ -115,24 +114,8 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
     if (mainWindow === null) {
-        startBackend();
+        createWindow();
     }
-});
-
-// Cleanup khi đóng app
-process.on('exit', () => {
-    if (backendProcess) {
-        backendProcess.kill();
-    }
-});
-
-['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(signal => {
-    process.on(signal, () => {
-        if (backendProcess) {
-            backendProcess.kill();
-        }
-        app.quit();
-    });
 });
 
 // Thêm xử lý sự kiện in
@@ -143,7 +126,9 @@ ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
         show: false,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            webSecurity: false,
+            allowRunningInsecureContent: true
         }
     });
 
@@ -151,9 +136,8 @@ ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
     if (isDev) {
         await printWindow.loadURL('http://localhost:3000/print');
     } else {
-        await printWindow.loadFile(path.join(__dirname, 'app', 'frontend', 'index.html'), {
-            hash: 'print'
-        });
+        const indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'index.html');
+        await printWindow.loadURL(`file://${indexPath}#print`);
     }
 
     // Gửi dữ liệu người cao tuổi đến trang in

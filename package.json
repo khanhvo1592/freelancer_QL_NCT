@@ -7,55 +7,46 @@
     "electron": "^35.0.2",
     "electron-builder": "^25.1.8",
     "electron-is-dev": "^2.0.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "rimraf": "^5.0.5"
   },
   "main": "electron/main.js",
   "scripts": {
     "start": "./node_modules/.bin/electron .",
     "dev:frontend": "cd frontend && npm start",
     "dev:backend": "cd backend && npm start",
-    "dev:electron": "wait-on -t 30000 -v http://localhost:3000 http://localhost:5000 && cross-env NODE_ENV=development electron .",
+    "dev:electron": "wait-on -t 30000 -v http://localhost:3000 && cross-env NODE_ENV=development electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:electron\"",
-    "build": "cd frontend && npm run build",
-    "prebuild": "rimraf frontend/build",
-    "pack": "./node_modules/.bin/electron-builder --dir",
-    "dist": "./node_modules/.bin/electron-builder",
-    "build:portable": "npm run build && ./node_modules/.bin/electron-builder build --win portable",
+    "clean": "rimraf dist frontend/build",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run clean && npm run build:frontend && electron-builder build --win portable",
     "postinstall": "cd frontend && npm install && cd ../backend && npm install"
   },
   "build": {
     "appId": "com.elder-manager.app",
-    "productName": "Elder Manager",
+    "productName": "Phần mềm quản lý hội viên NCT",
     "files": [
       "electron/**/*",
       "node_modules/**/*"
     ],
-    "extraFiles": [
+    "extraResources": [
+      {
+        "from": "frontend/build",
+        "to": "app/frontend"
+      },
       {
         "from": "backend",
         "to": "app/backend",
         "filter": [
           "**/*",
-          "!node_modules/**/*"
+          "!node_modules/**/*",
+          "!.env",
+          "!*.log"
         ]
       },
       {
         "from": "backend/node_modules",
-        "to": "app/backend/node_modules",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "frontend/build",
-        "to": "app/frontend",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "frontend/public/app.ico",
-        "to": "app.ico"
+        "to": "app/backend/node_modules"
       }
     ],
     "directories": {
@@ -74,7 +65,7 @@
       "icon": "frontend/public/app.ico"
     },
     "portable": {
-      "artifactName": "ElderManager.exe",
+      "artifactName": "PhanMemQuanLyHoiVienNCT.exe",
       "requestExecutionLevel": "user"
     },
     "asar": false,

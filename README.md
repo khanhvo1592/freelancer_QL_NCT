@@ -57,3 +57,9 @@ npm run build:portable
 ```
 
 The output will be in the `dist` directory. 
+
+-- start-backend.bat
+@echo off
+echo Starting Backend Server...
+cd /d %~dp0
+start /min cmd /c "node server.js"
