@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 echo Checking Node.js installation...
 
 :: Kiểm tra Node.js đã được cài đặt chưa
@@ -27,7 +28,7 @@ if %errorlevel% neq 0 (
 
 :: Tạo shortcut trên Desktop
 echo Creating desktop shortcut...
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([System.Environment]::GetFolderPath('Desktop') + '\Phần mềm quản lý hội viên NCT.lnk'); $Shortcut.TargetPath = '%~dp0Phần mềm quản lý hội viên NCT.exe'; $Shortcut.WorkingDirectory = '%~dp0'; $Shortcut.IconLocation = '%~dp0resources\app\frontend\app.ico'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([System.Environment]::GetFolderPath('Desktop') + '\Phan mem quan ly hoi vien NCT.lnk'); $Shortcut.TargetPath = '%~dp0Phan mem quan ly hoi vien NCT.exe'; $Shortcut.WorkingDirectory = '%~dp0'; $Shortcut.IconLocation = '%~dp0resources\app\frontend\app.ico'; $Shortcut.Save()"
 
 :: Tạo thư mục images trong ổ D nếu chưa có
 if not exist "D:\images" (
