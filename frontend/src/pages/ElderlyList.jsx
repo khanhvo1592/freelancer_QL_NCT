@@ -240,6 +240,7 @@ const ElderlyList = () => {
                 <MenuItem value="85">85 tuổi</MenuItem>
                 <MenuItem value="80">80 tuổi</MenuItem>
                 <MenuItem value="75">75 tuổi</MenuItem>
+                <MenuItem value="70">70 tuổi</MenuItem>
                 <MenuItem value="under70">Dưới 70 tuổi</MenuItem>
               </Select>
             </FormControl>

@@ -7,6 +7,34 @@ const { spawn } = require('child_process');
 let mainWindow;
 let backendProcess;
 
+function checkRequiredFiles() {
+    const imagesPath = 'D:\\images';
+    try {
+        // Kiểm tra thư mục tồn tại
+        if (!fs.existsSync(imagesPath)) {
+            app.quit();
+            return false;
+        }
+
+        // Kiểm tra có file trong thư mục
+        const files = fs.readdirSync(imagesPath);
+        const hasImages = files.some(file => {
+            const ext = path.extname(file).toLowerCase();
+            return ['.jpg', '.jpeg', '.png', '.gif'].includes(ext);
+        });
+
+        if (!hasImages) {
+            app.quit();
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        app.quit();
+        return false;
+    }
+}
+
 function log(message) {
     console.log(`[Electron] ${message}`);
 }
@@ -37,6 +65,11 @@ function startBackend() {
 }
 
 async function createWindow() {
+    // Kiểm tra trước khi tạo cửa sổ
+    if (!checkRequiredFiles()) {
+        return;
+    }
+
     console.log('Creating main window...');
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -48,7 +81,7 @@ async function createWindow() {
             webSecurity: false,
             allowRunningInsecureContent: true
         },
-        icon: path.join(__dirname, isDev ? '../frontend/public/app.ico' : '../frontend/public/app.ico'),
+        icon: path.join(process.resourcesPath, 'app', 'frontend', 'app.ico'),
         title: 'Phần mềm quản lý hội viên hội người cao tuổi'
     });
     console.log('Main window created successfully');
@@ -99,6 +132,10 @@ async function createWindow() {
 }
 
 app.on('ready', () => {
+    // Kiểm tra trước khi khởi động
+    if (!checkRequiredFiles()) {
+        return;
+    }
     startBackend();
     createWindow();
 });
