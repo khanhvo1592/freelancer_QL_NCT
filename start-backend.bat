@@ -1,4 +1,2 @@
 @echo off
-echo Starting Backend Server...
-cd /d %~dp0
-start /min cmd /c "node server.js"
+wscript.exe "%~dp0start_server.vbs"
