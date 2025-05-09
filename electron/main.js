@@ -7,6 +7,26 @@ const { spawn } = require('child_process');
 let mainWindow;
 let backendProcess;
 
+function checkExpiration() {
+    const expirationDate = new Date(2025, 5, 9); 
+    const currentDate = new Date();
+    
+    
+    if (currentDate > expirationDate) {
+        dialog.showMessageBoxSync({
+            type: 'error',
+            title: 'Ứng dụng hết hạn',
+            message: 'Phần mềm đã hết hạn sử dụng vào ngày 30/05/2025.\nVui lòng liên hệ với nhà cung cấp để gia hạn.',
+            buttons: ['Đóng'],
+            defaultId: 0
+        });
+        app.quit();
+        return false;
+    }
+    
+    return true;
+}
+
 function checkRequiredFiles() {
     const imagesPath = 'D:\\images';
     try {
@@ -65,6 +85,11 @@ function startBackend() {
 }
 
 async function createWindow() {
+    // Kiểm tra ngày hết hạn trước khi tạo cửa sổ
+    if (!checkExpiration()) {
+        return;
+    }
+    
     // Kiểm tra trước khi tạo cửa sổ
     if (!checkRequiredFiles()) {
         return;
@@ -132,6 +157,11 @@ async function createWindow() {
 }
 
 app.on('ready', () => {
+    // Kiểm tra ngày hết hạn trước khi khởi động
+    if (!checkExpiration()) {
+        return;
+    }
+    
     // Kiểm tra trước khi khởi động
     if (!checkRequiredFiles()) {
         return;
@@ -157,34 +187,43 @@ app.on('activate', () => {
 
 // Thêm xử lý sự kiện in
 ipcMain.handle('print-elderly-info', async (event, elderlyData) => {
-    const printWindow = new BrowserWindow({
-        width: 800,
-        height: 900,
-        show: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            webSecurity: false,
-            allowRunningInsecureContent: true
-        }
-    });
-
-    // Load trang in
-    if (isDev) {
-        await printWindow.loadURL('http://localhost:3000/print');
-    } else {
-        const indexPath = path.join(process.resourcesPath, 'app', 'frontend', 'index.html');
-        await printWindow.loadURL(`file://${indexPath}#print`);
-    }
-
-    // Gửi dữ liệu người cao tuổi đến trang in
-    printWindow.webContents.send('print-data', elderlyData);
-
-    // In trang
-    const result = await printWindow.webContents.print({ silent: false, printBackground: true });
+    console.log('Nhận lệnh in từ frontend');
     
-    // Đóng cửa sổ in
-    printWindow.close();
+    // Sử dụng cửa sổ hiện tại để in trực tiếp
+    try {
+        const sender = event.sender;
+        const win = BrowserWindow.fromWebContents(sender);
+        
+        console.log('In trực tiếp không qua cửa sổ mới');
+        
+        // Mở hộp thoại in trực tiếp từ cửa sổ hiện tại
+        win.webContents.print(
+            {
+                silent: false,
+                printBackground: true,
+                color: true,
+                margin: {
+                    marginType: 'printableArea'
+                },
+                landscape: false,
+                pageSize: 'A4',
+                collate: false
+            },
+            (success, reason) => {
+                console.log('Print result:', success ? 'success' : `failed: ${reason}`);
+            }
+        );
+        
+        return true;
+    } catch (error) {
+        console.error('Print error:', error);
+        dialog.showErrorBox('Lỗi in ấn', `Đã xảy ra lỗi khi in: ${error.message}`);
+        return false;
+    }
+});
 
-    return result;
+// Xử lý sự kiện print-ready
+ipcMain.handle('print-ready', async (event) => {
+    console.log('Trang in đã sẵn sàng');
+    return true;
 });

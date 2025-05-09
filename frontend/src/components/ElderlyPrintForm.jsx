@@ -21,7 +21,6 @@ import dayjs from 'dayjs';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import generateElderlyWordDocument from '../utils/wordGenerator';
-import { useReactToPrint } from 'react-to-print';
 
 // Configure pdfMake
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -56,20 +55,30 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
   useEffect(() => {
     const loadImage = async () => {
       try {
-        let imageUrl;
-        if (elderly?.photoUrl) {
-          imageUrl = `http://localhost:5000${elderly.photoUrl}`;
-        } else {
-          imageUrl = defaultAvatarUrl;
+        if (!elderly?.photoUrl) {
+          setPhotoBase64(null);
+          return;
         }
+
+        let imageUrl = elderly.photoUrl;
+        // Nếu URL không bắt đầu bằng http, thêm domain
+        if (!imageUrl.startsWith('http')) {
+          imageUrl = `http://localhost:5000${imageUrl}`;
+        }
+
         const base64 = await getBase64FromUrl(imageUrl);
         if (base64) {
           setPhotoBase64(base64);
+        } else {
+          console.error('Failed to load image');
+          setPhotoBase64(null);
         }
       } catch (error) {
         console.error('Error loading image:', error);
+        setPhotoBase64(null);
       }
     };
+
     loadImage();
   }, [elderly]);
 
@@ -207,141 +216,61 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
     };
   };
 
-  const handlePrint = useCallback(() => {
-    try {
-      // Clear any text selection
-      if (window.getSelection) {
-        window.getSelection().removeAllRanges();
-        document.getSelection()?.empty();
-      }
-
-      // Remove focus from any element
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-
-      // Check if we're in Electron environment
-      if (window.electron?.ipcRenderer) {
-        console.log('Using Electron print API');
-        
-        // Create a new window for printing
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-          throw new Error('Could not open print window');
-        }
-
-        // Clone the content to print
-        const contentToPrint = componentRef.current.cloneNode(true);
-        
-        // Replace image with a frame
-        const imgContainer = contentToPrint.querySelector('div[style*="border: 1px solid #000"]');
-        if (imgContainer) {
-          imgContainer.innerHTML = `
-            <div style="
-              width: 100%;
-              height: 100%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: 1px dashed #000;
-              background-color: #f5f5f5;
-              color: #666;
-              font-size: 12pt;
-              text-align: center;
-              padding: 10px;
-            ">
-              Ảnh 5x7
-            </div>
-          `;
-        }
-
-        // Write content to print window
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Print</title>
-              <style>
-                @page {
-                  size: A4 portrait;
-                  margin: 10mm 5mm 10mm 10mm;
-                }
-                body {
-                  margin: 0;
-                  padding: 0;
-                  background-color: white;
-                }
-                #elder-print-content {
-                  width: 210mm;
-                  min-height: 297mm;
-                  padding: 10mm 5mm 10mm 10mm;
-                  margin: 0;
-                  background-color: white;
-                }
-              </style>
-            </head>
-            <body>
-              ${contentToPrint.outerHTML}
-            </body>
-          </html>
-        `);
-
-        // Wait for content to load
-        printWindow.document.close();
-
-        // Send print command to main process with full options
-        window.electron.ipcRenderer.send('print-to-pdf', {
-          silent: false,
-          printBackground: true,
-          deviceWidth: '210mm',
-          deviceHeight: '297mm',
-          margins: {
-            top: 10,
-            bottom: 10,
-            left: 10,
-            right: 5
-          },
-          pageSize: 'A4',
-          orientation: 'portrait',
-          color: true,
-          copies: 1,
-          collate: true,
-          duplex: false,
-          dpi: 300,
-          showPrintDialog: true,
-          showPageSetupDialog: true
-        });
-
-        // Listen for print success/failure
-        const handlePrintSuccess = () => {
-          console.log('Print successful');
-          window.electron.ipcRenderer.removeListener('print-success', handlePrintSuccess);
-          window.electron.ipcRenderer.removeListener('print-error', handlePrintError);
-          setTimeout(() => {
-            printWindow.close();
-          }, 1000);
-        };
-
-        const handlePrintError = (error) => {
-          console.error('Print failed:', error);
-          window.electron.ipcRenderer.removeListener('print-success', handlePrintSuccess);
-          window.electron.ipcRenderer.removeListener('print-error', handlePrintError);
-          alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
-          printWindow.close();
-        };
-
-        window.electron.ipcRenderer.on('print-success', handlePrintSuccess);
-        window.electron.ipcRenderer.on('print-error', handlePrintError);
-
-      } else {
-        console.log('Using browser print API');
-        window.print();
-      }
-    } catch (error) {
-      console.error('Print error:', error);
-      alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
+  // Hàm in qua Electron - thay thế cho useReactToPrint
+  const handlePrint = () => {
+    if (!elderly) {
+      console.error('Không có dữ liệu người cao tuổi để in');
+      return;
     }
-  }, []);
+
+    try {
+      // Tạo element style để in
+      const style = document.createElement('style');
+      style.innerHTML = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #elder-print-content, 
+          #elder-print-content * {
+            visibility: visible !important;
+          }
+          #elder-print-content {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+          }
+          .MuiDialog-root,
+          .MuiDialogContent-root,
+          .MuiPaper-root {
+            position: static !important;
+            overflow: visible !important;
+            transform: none !important;
+            box-shadow: none !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Gọi hàm in từ Electron thông qua preload
+      if (window.electron && window.electron.printElderlyInfo) {
+        // Gọi electron để in trực tiếp
+        window.electron.printElderlyInfo();
+      } else {
+        console.error('Chức năng in không khả dụng');
+        alert('Chức năng in không khả dụng. Vui lòng thử lại sau.');
+      }
+
+      // Dọn dẹp
+      setTimeout(() => {
+        document.head.removeChild(style);
+      }, 2000);
+    } catch (error) {
+      console.error('Lỗi khi in:', error);
+      alert('Đã xảy ra lỗi khi in. Vui lòng thử lại sau.');
+    }
+  };
 
   // Add noselect style
   useEffect(() => {
@@ -513,22 +442,35 @@ const ElderlyPrintForm = ({ open, onClose, elderly }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto',
-                backgroundColor: '#f5f5f5'
+                backgroundColor: '#f5f5f5',
+                overflow: 'hidden'
               }}>
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px dashed #000',
-                  color: '#666',
-                  fontSize: '12pt',
-                  textAlign: 'center',
-                  padding: '10px'
-                }}>
-                  Ảnh 5x7
-                </div>
+                {photoBase64 ? (
+                  <img 
+                    src={photoBase64} 
+                    alt="Ảnh người cao tuổi"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px dashed #000',
+                    color: '#666',
+                    fontSize: '12pt',
+                    textAlign: 'center',
+                    padding: '10px'
+                  }}>
+                    Ảnh 5x7
+                  </div>
+                )}
               </div>
             </td>
             <td style={{ 

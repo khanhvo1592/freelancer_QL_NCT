@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { viVN } from '@mui/material/locale';
 import AppHeader from './components/AppHeader';
@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import ElderlyList from './pages/ElderlyList';
 import Statistics from './pages/Statistics';
 import Settings from './pages/Settings';
+import PrintPage from './pages/PrintPage';
 import './styles/global.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -60,29 +61,40 @@ const theme = createTheme({
   },
 }, viVN);
 
+// Wrapper component để kiểm tra route hiện tại
+const AppContent = () => {
+  const location = useLocation();
+  const isPrintPage = location.pathname === '/print';
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <CssBaseline />
+      {!isPrintPage && <AppHeader />}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: isPrintPage ? 0 : 3,
+          backgroundColor: isPrintPage ? 'white' : '#fff0f3',
+        }}
+      >
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/elderly-list" element={<ElderlyList />} />
+          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/print" element={<PrintPage />} />
+        </Routes>
+      </Box>
+    </Box>
+  );
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <Router>
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <CssBaseline />
-          <AppHeader />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              backgroundColor: '#fff0f3',
-            }}
-          >
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/elderly-list" element={<ElderlyList />} />
-              <Route path="/statistics" element={<Statistics />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Box>
-        </Box>
+        <AppContent />
       </Router>
     </ThemeProvider>
   );

@@ -22,22 +22,68 @@ const base64ToArrayBuffer = (base64) => {
   }
 };
 
-// Hàm tải ảnh từ URL và chuyển đổi thành ArrayBuffer
+// Hàm lấy ảnh từ URL và chuyển thành ArrayBuffer
 const fetchImageAsArrayBuffer = async (url) => {
   try {
+    // Nếu URL không bắt đầu bằng http, thêm domain
+    if (!url.startsWith('http')) {
+      url = `http://localhost:5000${url}`;
+    }
+    console.log('Fetching image from URL:', url);
+
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
+      throw new Error('Failed to fetch image');
     }
     const blob = await response.blob();
-    return await new Promise((resolve, reject) => {
+    console.log('Image blob size:', blob.size, 'bytes');
+    
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
+      reader.onloadend = () => {
+        const arrayBuffer = reader.result;
+        console.log('Image converted to ArrayBuffer, size:', arrayBuffer.byteLength, 'bytes');
+        resolve(arrayBuffer);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading image blob:', error);
+        reject(error);
+      };
       reader.readAsArrayBuffer(blob);
     });
   } catch (error) {
     console.error('Error fetching image:', error);
+    return null;
+  }
+};
+
+// Hàm xử lý ảnh
+const processImage = async (imageUrl) => {
+  try {
+    if (!imageUrl) {
+      console.log('No image URL provided');
+      return null;
+    }
+    
+    console.log('Processing image URL:', imageUrl);
+    let imageData;
+    if (imageUrl.startsWith('data:image')) {
+      console.log('Processing base64 image');
+      imageData = base64ToArrayBuffer(imageUrl);
+    } else {
+      console.log('Processing URL image');
+      imageData = await fetchImageAsArrayBuffer(imageUrl);
+    }
+    
+    if (!imageData) {
+      console.error('Failed to process image data');
+      return null;
+    }
+    
+    console.log('Image processed successfully, size:', imageData.byteLength, 'bytes');
+    return imageData;
+  } catch (error) {
+    console.error('Error processing image:', error);
     return null;
   }
 };
@@ -67,12 +113,13 @@ export const generateElderlyWordDocument = async (elderly) => {
     // Xử lý ảnh
     let imageData = null;
     if (elderly.photoUrl) {
-      if (elderly.photoUrl.includes('data:image')) {
-        // Nếu là base64
-        imageData = base64ToArrayBuffer(elderly.photoUrl);
-      } else {
-        // Nếu là URL
-        imageData = await fetchImageAsArrayBuffer(elderly.photoUrl);
+      try {
+        imageData = await processImage(elderly.photoUrl);
+        if (!imageData) {
+          console.error('Failed to process image data');
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
       }
     }
     
@@ -126,49 +173,25 @@ export const generateElderlyWordDocument = async (elderly) => {
                         size: 30,
                         type: WidthType.PERCENTAGE,
                       },
+                      margins: {
+                        top: 100,
+                        bottom: 100,
+                        left: 100,
+                        right: 100,
+                      },
                       children: [
-                        ...(imageData ? [
-                          new Paragraph({
-                            alignment: AlignmentType.CENTER,
-                            children: [
-                              new ImageRun({
-                                data: imageData,
-                                transformation: {
-                                  width: 200,
-                                  height: 250,
-                                },
-                              }),
-                            ],
-                          }),
-                        ] : [
-                          new Paragraph({
-                            alignment: AlignmentType.CENTER,
-                            children: [
-                              new TextRun({
-                                text: "Ảnh 5x7",
-                                bold: true,
-                                size: 28,
-                              }),
-                            ],
-                            spacing: { before: 100, after: 100 },
-                          }),
-                          new Paragraph({
-                            alignment: AlignmentType.CENTER,
-                            borders: {
-                              top: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
-                              bottom: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
-                              left: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
-                              right: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
-                            },
-                            children: [
-                              new TextRun({
-                                text: "",
-                                size: 24,
-                              }),
-                            ],
-                            spacing: { before: 0, after: 0 },
-                          }),
-                        ]),
+                        new Paragraph({
+                          alignment: AlignmentType.CENTER,
+                          children: [
+                            new ImageRun({
+                              data: imageData,
+                              transformation: {
+                                width: 180,
+                                height: 240,
+                              },
+                            }),
+                          ],
+                        }),
                       ],
                     }),
                     // Cột 2: Thông tin cơ bản
@@ -176,6 +199,12 @@ export const generateElderlyWordDocument = async (elderly) => {
                       width: {
                         size: 70,
                         type: WidthType.PERCENTAGE,
+                      },
+                      margins: {
+                        top: 100,
+                        bottom: 100,
+                        left: 200,
+                        right: 100,
                       },
                       children: [
                         // Phần I: Thông tin cơ bản của công dân
@@ -187,7 +216,7 @@ export const generateElderlyWordDocument = async (elderly) => {
                               size: 28,
                             }),
                           ],
-                          spacing: { after: 200 },
+                          spacing: { after: 300 },
                         }),
                         
                         // Họ và tên
@@ -231,7 +260,7 @@ export const generateElderlyWordDocument = async (elderly) => {
                               size: 24,
                             }),
                             new TextRun({
-                              text: elderly.gender || "Nữ", // Sử dụng giới tính từ dữ liệu nếu có
+                              text: elderly.gender || "",
                               size: 24,
                             }),
                           ],

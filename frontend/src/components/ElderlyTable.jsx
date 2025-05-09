@@ -134,10 +134,16 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
       headerName: 'Họ và tên', 
       flex: 1,
       minWidth: 200,
-      sortComparator: (v1, v2) => {
+      sortable: true,
+      sortComparator: (v1, v2, param1, param2) => {
+        // Lấy tên cuối cùng để so sánh
         const lastName1 = getLastName(v1);
         const lastName2 = getLastName(v2);
-        return lastName1.localeCompare(lastName2, 'vi');
+        
+        // So sánh theo tiếng Việt
+        return param1.sortDirection === 'asc' 
+          ? lastName1.localeCompare(lastName2, 'vi')
+          : lastName2.localeCompare(lastName1, 'vi');
       },
       renderCell: (params) => (
         <Box 
