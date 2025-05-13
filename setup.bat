@@ -1,5 +1,7 @@
 @echo off
 chcp 65001 > nul
+setlocal enabledelayedexpansion
+
 echo Checking Node.js installation...
 
 :: Kiểm tra Node.js đã được cài đặt chưa
@@ -27,24 +29,42 @@ if %errorlevel% neq 0 (
 )
 
 :: Kiểm tra file thực thi và icon tồn tại
-if not exist "%~dp0Phan mem quan ly hoi vien NCT.exe" (
-    echo Error: Application executable not found!
+set "EXE_PATH=%~dp0PhanMemQuanLyHoiVienNCT.exe"
+set "ICON_PATH=%~dp0app.ico"
+set "SHORTCUT_NAME=Phan mem quan ly hoi vien NCT.lnk"
+set "DESKTOP_PATH=%USERPROFILE%\Desktop"
+
+if not exist "%EXE_PATH%" (
+    echo Error: Application executable not found at:
+    echo %EXE_PATH%
     echo Please make sure the application is built before running setup.
     pause
     exit /b 1
 )
 
-if not exist "%~dp0electron\app.ico" (
-    echo Warning: Icon file not found at electron\app.ico
+if not exist "%ICON_PATH%" (
+    echo Warning: Icon file not found at:
+    echo %ICON_PATH%
     echo Using default icon...
-    set ICON_PATH=""
+    set "ICON_PARAM="
 ) else (
-    set ICON_PATH="%~dp0electron\app.ico"
+    set "ICON_PARAM=!ICON_PATH!"
 )
 
 :: Tạo shortcut trên Desktop
 echo Creating desktop shortcut...
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([System.Environment]::GetFolderPath('Desktop') + '\Phan mem quan ly hoi vien NCT.lnk'); $Shortcut.TargetPath = '%~dp0Phan mem quan ly hoi vien NCT.exe'; $Shortcut.WorkingDirectory = '%~dp0'; if (%ICON_PATH%) { $Shortcut.IconLocation = %ICON_PATH% }; $Shortcut.Save()"
+echo Target: %EXE_PATH%
+echo Desktop: %DESKTOP_PATH%
+echo Shortcut: %DESKTOP_PATH%\%SHORTCUT_NAME%
+
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%DESKTOP_PATH%\%SHORTCUT_NAME%'); $Shortcut.TargetPath = '%EXE_PATH%'; $Shortcut.WorkingDirectory = '%~dp0'; if ('%ICON_PARAM%') { $Shortcut.IconLocation = '%ICON_PARAM%' }; $Shortcut.Save(); Write-Host 'Shortcut created successfully'"
+
+if %errorlevel% neq 0 (
+    echo Error creating shortcut!
+    echo Please try running this script as Administrator.
+    pause
+    exit /b 1
+)
 
 :: Tạo thư mục images trong ổ D nếu chưa có
 if not exist "D:\images" (
@@ -54,4 +74,4 @@ if not exist "D:\images" (
 
 echo Setup completed successfully!
 echo You can now start the application from your desktop.
-pause 
+pause
