@@ -26,9 +26,25 @@ if %errorlevel% neq 0 (
     echo Node.js is already installed.
 )
 
+:: Kiểm tra file thực thi và icon tồn tại
+if not exist "%~dp0Phan mem quan ly hoi vien NCT.exe" (
+    echo Error: Application executable not found!
+    echo Please make sure the application is built before running setup.
+    pause
+    exit /b 1
+)
+
+if not exist "%~dp0electron\app.ico" (
+    echo Warning: Icon file not found at electron\app.ico
+    echo Using default icon...
+    set ICON_PATH=""
+) else (
+    set ICON_PATH="%~dp0electron\app.ico"
+)
+
 :: Tạo shortcut trên Desktop
 echo Creating desktop shortcut...
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([System.Environment]::GetFolderPath('Desktop') + '\Phan mem quan ly hoi vien NCT.lnk'); $Shortcut.TargetPath = '%~dp0Phan mem quan ly hoi vien NCT.exe'; $Shortcut.WorkingDirectory = '%~dp0'; $Shortcut.IconLocation = '%~dp0resources\app\frontend\app.ico'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([System.Environment]::GetFolderPath('Desktop') + '\Phan mem quan ly hoi vien NCT.lnk'); $Shortcut.TargetPath = '%~dp0Phan mem quan ly hoi vien NCT.exe'; $Shortcut.WorkingDirectory = '%~dp0'; if (%ICON_PATH%) { $Shortcut.IconLocation = %ICON_PATH% }; $Shortcut.Save()"
 
 :: Tạo thư mục images trong ổ D nếu chưa có
 if not exist "D:\images" (
