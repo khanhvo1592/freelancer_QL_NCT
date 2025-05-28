@@ -8,7 +8,7 @@ let mainWindow;
 let backendProcess;
 
 function checkExpiration() {
-    const expirationDate = new Date(2025, 5, 9); 
+    const expirationDate = new Date(2025, 6, 6); 
     const currentDate = new Date();
     
     
