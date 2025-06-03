@@ -96,18 +96,9 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
     if (!dateOfBirth) return null;
     const birthDate = new Date(dateOfBirth);
     const birthYear = birthDate.getFullYear();
-    const birthMonth = birthDate.getMonth();
-    const birthDay = birthDate.getDate();
     
-    let age = year - birthYear;
-    
-    // Kiểm tra xem đã đến ngày sinh trong năm dự báo chưa
-    const hasHadBirthday = new Date(year, birthMonth, birthDay) <= new Date(year, 11, 31);
-    if (!hasHadBirthday) {
-      age--;
-    }
-    
-    return age;
+    // Tính tuổi từ ngày 1/1 của năm
+    return year - birthYear;
   };
 
   const getLastName = (fullName) => {

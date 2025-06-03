@@ -63,20 +63,7 @@ const Statistics = () => {
     const year = projectionYear || new Date().getFullYear();
     
     // Tính tuổi theo năm dự báo
-    let age = year - birthDate.getFullYear();
-    
-    // Điều chỉnh tuổi dựa trên tháng và ngày
-    const birthMonth = birthDate.getMonth();
-    const birthDay = birthDate.getDate();
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentDay = today.getDate();
-    
-    if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
-      age--;
-    }
-    
-    return age;
+    return year - birthDate.getFullYear();
   };
 
   useEffect(() => {

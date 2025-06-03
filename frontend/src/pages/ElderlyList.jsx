@@ -87,8 +87,7 @@ const ElderlyList = () => {
       const birthDate = new Date(elder.dateOfBirth);
       const currentYear = new Date().getFullYear();
       const currentAge = currentYear - birthDate.getFullYear();
-      const ageDiff = selectedYear - currentYear;
-      const projectedAge = currentAge + ageDiff;
+      const projectedAge = selectedYear - birthDate.getFullYear();
 
       return {
         ...elder,
