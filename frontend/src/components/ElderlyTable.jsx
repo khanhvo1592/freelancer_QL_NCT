@@ -118,6 +118,16 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
 
   const columns = [
     {
+      field: 'id',
+      headerName: 'STT',
+      width: 70,
+      flex: 0,
+      renderCell: (params) => {
+        const index = data.findIndex(item => item.id === params.row.id);
+        return index + 1;
+      },
+    },
+    {
       field: 'photoUrl',
       headerName: 'Ảnh',
       width: 80,
@@ -261,18 +271,96 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
         disableSelectionOnClick
         sx={{
           height: 'calc(100vh - 200px)',
+          minHeight: '600px',
           '& .MuiDataGrid-row': {
             '&:nth-of-type(odd)': {
               backgroundColor: 'action.hover',
             },
+            minHeight: '52px !important',
           },
           '& .MuiDataGrid-cell': {
             whiteSpace: 'nowrap',
+            padding: '8px 16px',
+          },
+          '& .MuiDataGrid-virtualScroller': {
+            overflow: 'auto',
+            marginBottom: '20px',
+            minHeight: '400px',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+              height: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            },
+          },
+          '& .MuiDataGrid-virtualScrollerContent': {
+            height: '100% !important',
+            overflow: 'visible !important',
+            minHeight: '100%',
+            paddingBottom: '150px',
+          },
+          '& .MuiDataGrid-footerContainer': {
+            position: 'sticky',
+            bottom: 0,
+            backgroundColor: 'background.paper',
+            zIndex: 1,
+            borderTop: '1px solid rgba(224, 224, 224, 1)',
+            boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
+          },
+          '& .MuiDataGrid-main': {
+            overflow: 'visible',
+            position: 'relative',
+            paddingBottom: '100px',
+          },
+          '& .MuiDataGrid-root': {
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            position: 'sticky',
+            top: 0,
+            backgroundColor: 'background.paper',
+            zIndex: 1,
+            minHeight: '52px !important',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+          },
+          '& .MuiDataGrid-columnHeader': {
+            padding: '8px 16px',
+          },
+          '& .MuiDataGrid-footerContainer': {
+            minHeight: '52px',
+            borderTop: '1px solid rgba(224, 224, 224, 1)',
+          },
+          '& .MuiDataGrid-virtualScrollerRenderZone': {
+            transform: 'none !important',
           },
         }}
         components={{
           Toolbar: CustomToolbar,
         }}
+        density="standard"
+        autoHeight={false}
+        getRowHeight={() => 52}
+        componentsProps={{
+          footer: {
+            sx: {
+              borderTop: '1px solid rgba(224, 224, 224, 1)',
+              minHeight: '52px',
+            },
+          },
+        }}
+        disableColumnMenu
+        disableColumnFilter
+        disableColumnSelector
       />
 
       <ElderlyDetailDialog
