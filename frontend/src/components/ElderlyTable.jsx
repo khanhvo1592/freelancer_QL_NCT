@@ -26,6 +26,7 @@ import {
   Avatar,
   Select,
   MenuItem,
+  Stack,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -114,8 +115,7 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
       width: 70,
       flex: 0,
       renderCell: (params) => {
-        const index = data.findIndex(item => item.id === params.row.id);
-        return index + 1;
+        return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
       },
     },
     {
@@ -254,105 +254,115 @@ const ElderlyTable = ({ data, selectedYear = new Date().getFullYear(), onRefresh
 
   return (
     <>
-      <DataGrid
-        rows={data}
-        columns={columns}
-        pageSize={20}
-        rowsPerPageOptions={[10, 20, 50, 100]}
-        disableSelectionOnClick
-        sx={{
-          height: 'calc(100vh - 200px)',
-          minHeight: '600px',
-          '& .MuiDataGrid-row': {
-            '&:nth-of-type(odd)': {
-              backgroundColor: 'action.hover',
-            },
-            minHeight: '52px !important',
-          },
-          '& .MuiDataGrid-cell': {
-            whiteSpace: 'nowrap',
-            padding: '8px 16px',
-          },
+      <Box sx={{ 
+        height: 'calc(100vh - 350px)', 
+        width: '100%',
+        '& .MuiDataGrid-root': {
+          border: 'none',
           '& .MuiDataGrid-virtualScroller': {
-            overflow: 'auto',
-            marginBottom: '20px',
-            minHeight: '400px',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-              height: '8px',
+            overflow: 'auto !important',
+            '&:focus': {
+              outline: 'none',
             },
-            '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
+            '& .MuiDataGrid-virtualScrollerContent': {
+              paddingBottom: '100px !important',
             },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#888',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: '#555',
-            },
-          },
-          '& .MuiDataGrid-virtualScrollerContent': {
-            height: '100% !important',
-            overflow: 'visible !important',
-            minHeight: '100%',
-            paddingBottom: '150px',
           },
           '& .MuiDataGrid-footerContainer': {
             position: 'sticky',
             bottom: 0,
-            backgroundColor: 'background.paper',
+            backgroundColor: 'white',
             zIndex: 1,
             borderTop: '1px solid rgba(224, 224, 224, 1)',
-            boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.1)',
-          },
-          '& .MuiDataGrid-main': {
-            overflow: 'visible',
-            position: 'relative',
-            paddingBottom: '100px',
-          },
-          '& .MuiDataGrid-root': {
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
+            boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.05)',
           },
           '& .MuiDataGrid-columnHeaders': {
             position: 'sticky',
             top: 0,
-            backgroundColor: 'background.paper',
+            backgroundColor: 'white',
             zIndex: 1,
-            minHeight: '52px !important',
-            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+            borderBottom: '1px solid rgba(224, 224, 224, 1)',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
           },
-          '& .MuiDataGrid-columnHeader': {
-            padding: '8px 16px',
-          },
-          '& .MuiDataGrid-footerContainer': {
-            minHeight: '52px',
-            borderTop: '1px solid rgba(224, 224, 224, 1)',
-          },
-          '& .MuiDataGrid-virtualScrollerRenderZone': {
-            transform: 'none !important',
-          },
-        }}
-        components={{
-          Toolbar: CustomToolbar,
-        }}
-        density="standard"
-        autoHeight={false}
-        getRowHeight={() => 52}
-        componentsProps={{
-          footer: {
-            sx: {
-              borderTop: '1px solid rgba(224, 224, 224, 1)',
-              minHeight: '52px',
+        },
+      }}>
+        <DataGrid
+          rows={data}
+          columns={columns}
+          getRowId={(row) => row.id}
+          disableRowSelectionOnClick
+          rowHeight={52}
+          columnHeaderHeight={52}
+          hideFooterSelectedRowCount
+          disableColumnMenu
+          disableColumnFilter
+          disableColumnSelector
+          disableDensitySelector
+          disableColumnResize
+          disableColumnReorder
+          disableMultipleColumnsSorting
+          disableMultipleSelection
+          disableSelectionOnClick
+          disableExtendRowFullWidth
+          disableVirtualization={false}
+          components={{
+            NoRowsOverlay: () => (
+              <Stack height="100%" alignItems="center" justifyContent="center">
+                Không có dữ liệu
+              </Stack>
+            ),
+            NoResultsOverlay: () => (
+              <Stack height="100%" alignItems="center" justifyContent="center">
+                Không tìm thấy kết quả
+              </Stack>
+            ),
+          }}
+          componentsProps={{
+            pagination: {
+              labelRowsPerPage: 'Số hàng mỗi trang',
+              labelDisplayedRows: ({ from, to, count }) => `${from}-${to} trên ${count}`,
             },
-          },
-        }}
-        disableColumnMenu
-        disableColumnFilter
-        disableColumnSelector
-      />
+          }}
+          localeText={{
+            MuiTablePagination: {
+              labelRowsPerPage: 'Số hàng mỗi trang',
+              labelDisplayedRows: ({ from, to, count }) => `${from}-${to} trên ${count}`,
+            },
+          }}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              borderColor: 'rgba(224, 224, 224, 1)',
+              padding: '0 16px',
+              '&:focus': {
+                outline: 'none',
+              },
+            },
+            '& .MuiDataGrid-row': {
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                },
+              },
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#f5f5f5',
+              '& .MuiDataGrid-columnHeader': {
+                '&:focus': {
+                  outline: 'none',
+                },
+              },
+            },
+            '& .MuiDataGrid-footerContainer': {
+              borderTop: '1px solid rgba(224, 224, 224, 1)',
+              backgroundColor: '#f5f5f5',
+            },
+          }}
+        />
+      </Box>
 
       <ElderlyDetailDialog
         open={openDetailDialog}
