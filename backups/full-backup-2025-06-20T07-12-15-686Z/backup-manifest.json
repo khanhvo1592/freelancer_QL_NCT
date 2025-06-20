@@ -1,0 +1,18 @@
+{
+  "backupType": "full",
+  "backupDate": "2025-06-20T07:12:15.701Z",
+  "database": {
+    "exists": true,
+    "records": "See elderly-data.json"
+  },
+  "images": {
+    "exists": true,
+    "count": 2
+  },
+  "backupLocation": "D:\\Project\\freelancer_QL_NCT\\backups\\full-backup-2025-06-20T07-12-15-686Z",
+  "files": [
+    "database/elderly.db",
+    "database/elderly-data.json",
+    "images/*"
+  ]
+}

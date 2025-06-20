@@ -8,7 +8,7 @@ let mainWindow;
 let backendProcess;
 
 function checkExpiration() {
-    const expirationDate = new Date(2025, 6, 6); 
+    const expirationDate = new Date(2050, 6, 6); 
     const currentDate = new Date();
     
     
@@ -16,7 +16,7 @@ function checkExpiration() {
         dialog.showMessageBoxSync({
             type: 'error',
             title: 'Ứng dụng hết hạn',
-            message: 'Phần mềm đã hết hạn sử dụng vào ngày 30/05/2025.\nVui lòng liên hệ với nhà cung cấp để gia hạn.',
+            message: 'Phần mềm đã hết hạn sử dụng vào ngày 06/07/2050.\nVui lòng liên hệ với nhà cung cấp để gia hạn.',
             buttons: ['Đóng'],
             defaultId: 0
         });

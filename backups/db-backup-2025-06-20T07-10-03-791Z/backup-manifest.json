@@ -1,0 +1,10 @@
+{
+  "backupType": "database",
+  "backupDate": "2025-06-20T07:10:03.809Z",
+  "originalFile": "D:\\Project\\freelancer_QL_NCT\\backend\\db\\elderly.db",
+  "backupLocation": "D:\\Project\\freelancer_QL_NCT\\backups\\db-backup-2025-06-20T07-10-03-791Z",
+  "files": [
+    "elderly.db",
+    "elderly-data.json"
+  ]
+}

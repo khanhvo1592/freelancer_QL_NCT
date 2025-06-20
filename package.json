@@ -7,8 +7,8 @@
     "electron": "^35.0.2",
     "electron-builder": "^25.1.8",
     "electron-is-dev": "^2.0.0",
-    "wait-on": "^7.2.0",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "wait-on": "^7.2.0"
   },
   "main": "electron/main.js",
   "scripts": {
@@ -20,7 +20,15 @@
     "clean": "rimraf dist frontend/build",
     "build:frontend": "cd frontend && npm run build",
     "build": "npm run clean && npm run build:frontend && electron-builder build --win portable",
-    "postinstall": "cd frontend && npm install && cd ../backend && npm install"
+    "postinstall": "cd frontend && npm install && cd ../backend && npm install",
+    "backup:db": "node scripts/backup-db.js",
+    "restore:db": "node scripts/restore-db.js",
+    "backup:images": "node scripts/backup-images.js",
+    "restore:images": "node scripts/restore-images.js",
+    "backup:all": "node scripts/backup-all.js",
+    "restore:all": "node scripts/restore-all.js",
+    "list:backups": "node scripts/list-backups.js",
+    "init:data": "node scripts/init-data.js"
   },
   "build": {
     "appId": "com.elder-manager.app",
@@ -74,6 +82,7 @@
   },
   "dependencies": {
     "pdfmake": "^0.2.7",
-    "react-to-print": "^3.0.5"
+    "react-to-print": "^3.0.5",
+    "sqlite3": "^5.1.7"
   }
 }
