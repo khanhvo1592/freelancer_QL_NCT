@@ -16,7 +16,7 @@
     "dev:frontend": "cd frontend && npm start",
     "dev:backend": "cd backend && npm start",
     "dev:electron": "wait-on -t 30000 -v http://localhost:3000 && cross-env NODE_ENV=development electron .",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:electron\"",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "clean": "rimraf dist frontend/build",
     "build:frontend": "cd frontend && npm run build",
     "build": "npm run clean && npm run build:frontend && electron-builder build --win portable",

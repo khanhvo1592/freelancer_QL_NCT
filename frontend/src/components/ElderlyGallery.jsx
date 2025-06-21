@@ -50,7 +50,7 @@ const ElderlyGallery = ({ data, onElderlyClick }) => {
               >
                 <Box
                   component="img"
-                  src={elderly.photoUrl || defaultAvatarUrl}
+                  src={elderly.photoUrl ? `http://localhost:5000${elderly.photoUrl}` : defaultAvatarUrl}
                   alt={elderly.name}
                   sx={{
                     position: 'absolute',

@@ -1,65 +1,115 @@
-# Elder Manager Application
+# Phần mềm quản lý hội viên hội người cao tuổi
 
-This is a desktop application for managing elder care services, built with Electron, React, and Node.js.
+Ứng dụng desktop được xây dựng bằng Electron, React và Node.js để quản lý thông tin hội viên hội người cao tuổi.
 
-## Project Structure
+## Tính năng chính
 
-The project is organized into three main parts:
+### Quản lý dữ liệu
+- **Sao lưu tất cả dữ liệu** (Ctrl+B): Tạo bản sao lưu hoàn chỉnh của database và tất cả hình ảnh
+- **Khôi phục dữ liệu** (Ctrl+R): Khôi phục dữ liệu từ bản sao lưu mới nhất
+- **Khởi tạo dữ liệu mới** (Ctrl+N): Tạo database mới và xóa tất cả dữ liệu hiện tại
 
-### 1. Frontend (`/frontend`)
-- React-based user interface
-- Contains all UI components and frontend logic
-- Built with modern web technologies
+### Quản lý hội viên
+- Thêm, sửa, xóa thông tin hội viên
+- Upload và quản lý hình ảnh hội viên
+- Tìm kiếm và lọc hội viên
+- In thông tin hội viên
+- Xuất dữ liệu ra Excel
 
-### 2. Backend (`/backend`)
-- Node.js server
-- Handles data processing and business logic
-- Manages database operations
+### Thống kê
+- Thống kê theo độ tuổi, giới tính
+- Thống kê theo địa chỉ, quê quán
+- Biểu đồ trực quan
 
-### 3. Electron (`/electron`)
-- Desktop application wrapper
-- Handles application lifecycle
-- Manages native desktop features
+### Quản lý Process
+- Tự động kill tất cả process Node.js khi đóng ứng dụng
+- Xử lý graceful shutdown cho backend server
+- Cleanup resources khi ứng dụng crash
 
-## Setup Instructions
+## Cài đặt và chạy
 
-1. Install dependencies:
+### Yêu cầu hệ thống
+- Node.js 16+ 
+- Windows 10/11
+
+### Cài đặt
 ```bash
 npm install
 ```
 
-2. Development mode:
+### Chạy trong môi trường development
 ```bash
 npm run dev
 ```
 
-3. Build the application:
+### Build ứng dụng
 ```bash
 npm run build
 ```
 
-4. Create distribution package:
-```bash
-npm run dist
+## Cấu trúc thư mục
+
+```
+├── electron/          # Ứng dụng Electron chính
+├── frontend/          # React frontend
+├── backend/           # Node.js backend API
+├── scripts/           # Scripts backup/restore
+├── backups/           # Thư mục chứa bản sao lưu
+├── kill-node-processes.bat  # Script kill process (Windows)
+└── dist/              # Thư mục build
 ```
 
-## Development
+## Hướng dẫn sử dụng
 
-- Frontend runs on `http://localhost:3000`
-- Backend API runs on `http://localhost:5000`
-- Electron app will launch automatically in development mode
+### Sao lưu dữ liệu
+1. Mở menu "Dữ liệu" → "Sao lưu tất cả dữ liệu" (hoặc nhấn Ctrl+B)
+2. Xác nhận sao lưu trong hộp thoại
+3. Bản sao lưu sẽ được tạo trong thư mục `backups/`
 
-## Building for Production
+### Khôi phục dữ liệu
+1. Mở menu "Dữ liệu" → "Khôi phục dữ liệu" (hoặc nhấn Ctrl+R)
+2. Xác nhận khôi phục trong hộp thoại
+3. Dữ liệu sẽ được khôi phục từ bản sao lưu mới nhất
 
-The application can be built for Windows as a portable executable:
-```bash
-npm run build:portable
-```
+### Khởi tạo dữ liệu mới
+1. Mở menu "Dữ liệu" → "Khởi tạo dữ liệu mới" (hoặc nhấn Ctrl+N)
+2. Xác nhận khởi tạo trong hộp thoại
+3. Tất cả dữ liệu hiện tại sẽ bị xóa và tạo database mới
 
-The output will be in the `dist` directory. 
+### Quản lý Process
+- Ứng dụng tự động kill tất cả process Node.js khi đóng
+- Nếu có process "zombie", chạy file `kill-node-processes.bat`
+- Backend server sẽ được shutdown gracefully
 
--- start-backend.bat
-@echo off
-echo Starting Backend Server...
-cd /d %~dp0
-start /min cmd /c "node server.js"
+## Lưu ý quan trọng
+
+⚠️ **Cảnh báo**: 
+- Quá trình khôi phục và khởi tạo dữ liệu mới sẽ ghi đè dữ liệu hiện tại
+- Luôn sao lưu dữ liệu trước khi thực hiện các thao tác quan trọng
+- Bản sao lưu được lưu trong thư mục `backups/` với timestamp
+
+🔄 **Quản lý Process**:
+- Ứng dụng tự động cleanup khi đóng
+- Nếu gặp lỗi "port already in use", chạy `kill-node-processes.bat`
+- Backend server được quản lý tự động bởi Electron
+
+## Khắc phục sự cố
+
+### Process không đóng được:
+1. Chạy file `kill-node-processes.bat` để force kill
+2. Kiểm tra Task Manager xem còn process nào không
+3. Restart máy tính nếu cần
+
+### Port đã được sử dụng:
+1. Chạy `kill-node-processes.bat`
+2. Đợi 5 giây rồi chạy lại ứng dụng
+3. Kiểm tra firewall settings
+
+## Hỗ trợ
+
+Công ty TNHH công nghệ số Đức minh
+- Điện thoại: 0963 762 379
+
+## License
+
+© 2024 Công ty TNHH công nghệ số Đức minh

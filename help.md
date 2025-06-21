@@ -220,7 +220,6 @@ dist/
 │   ├── resources/
 │   │   ├── app/
 │   │   │   ├── main.js
-│   │   │   ├── elder-manager/
 │   │   │   │   └── build/
 │   │   │   └── elder-mgmt-be/
 │   │   └── ...
@@ -243,3 +242,158 @@ Nếu gặp lỗi trong quá trình build, hãy kiểm tra:
 2. Đảm bảo tất cả đường dẫn trong code đều sử dụng `path.join()`
 3. Kiểm tra cấu hình trong `package.json`
 4. Xem có file nào bị thiếu trong `files` của cấu hình build không
+
+# Hướng dẫn sử dụng tính năng quản lý dữ liệu
+
+## Tổng quan
+
+Phần mềm quản lý hội viên hội người cao tuổi đã được tích hợp 3 tính năng quản lý dữ liệu quan trọng:
+
+1. **Sao lưu tất cả dữ liệu** - Tạo bản sao lưu hoàn chỉnh
+2. **Khôi phục dữ liệu** - Khôi phục từ bản sao lưu
+3. **Khởi tạo dữ liệu mới** - Tạo database mới
+
+## 1. Sao lưu tất cả dữ liệu
+
+### Cách sử dụng:
+- **Menu**: Dữ liệu → Sao lưu tất cả dữ liệu
+- **Phím tắt**: Ctrl + B
+
+### Chức năng:
+- Sao lưu toàn bộ database SQLite
+- Sao lưu tất cả hình ảnh trong thư mục uploads
+- Tạo file JSON chứa dữ liệu database
+- Tạo file manifest mô tả bản sao lưu
+- Lưu trong thư mục `backups/full-backup-[timestamp]`
+
+### Cấu trúc bản sao lưu:
+```
+backups/
+└── full-backup-2024-01-15T10-30-45-123Z/
+    ├── backup-manifest.json
+    ├── database/
+    │   ├── elderly.db
+    │   └── elderly-data.json
+    └── images/
+        ├── 1745674526354.jpg
+        ├── 1745762913401.jpg
+        └── ...
+```
+
+### Thông tin hiển thị sau khi sao lưu:
+- Số lượng bản ghi database
+- Số lượng file hình ảnh
+- Kích thước tổng cộng
+- Vị trí lưu bản sao lưu
+
+## 2. Khôi phục dữ liệu
+
+### Cách sử dụng:
+- **Menu**: Dữ liệu → Khôi phục dữ liệu
+- **Phím tắt**: Ctrl + R
+
+### Chức năng:
+- Tự động tìm bản sao lưu mới nhất
+- Tạo backup của dữ liệu hiện tại trước khi khôi phục
+- Khôi phục database từ bản sao lưu
+- Khôi phục tất cả hình ảnh
+- Xác minh tính toàn vẹn dữ liệu
+
+### Quy trình an toàn:
+1. Tạo backup của database hiện tại → `elderly-pre-restore.db`
+2. Tạo backup của hình ảnh hiện tại → `uploads-pre-restore/`
+3. Khôi phục dữ liệu từ bản sao lưu
+4. Xác minh số lượng bản ghi
+
+### Thông tin hiển thị sau khi khôi phục:
+- Số lượng bản ghi đã khôi phục
+- Số lượng hình ảnh đã khôi phục
+- Kích thước dữ liệu đã khôi phục
+
+## 3. Khởi tạo dữ liệu mới
+
+### Cách sử dụng:
+- **Menu**: Dữ liệu → Khởi tạo dữ liệu mới
+- **Phím tắt**: Ctrl + N
+
+### Chức năng:
+- Xóa database hiện tại
+- Tạo database mới với cấu trúc bảng chuẩn
+- Xóa tất cả hình ảnh trong thư mục uploads
+- Tạo thư mục uploads mới nếu chưa tồn tại
+
+### Cấu trúc bảng được tạo:
+```sql
+CREATE TABLE elderly (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    dateOfBirth TEXT,
+    gender TEXT,
+    address TEXT,
+    hometown TEXT,
+    phone TEXT,
+    joinDate TEXT,
+    cardNumber TEXT,
+    cardIssueDate TEXT,
+    photoUrl TEXT,
+    status TEXT DEFAULT 'alive' CHECK(status IN ('alive', 'deceased')),
+    deathDate TEXT
+)
+```
+
+## Lưu ý quan trọng
+
+### ⚠️ Cảnh báo bảo mật:
+- **Khôi phục dữ liệu** sẽ ghi đè hoàn toàn dữ liệu hiện tại
+- **Khởi tạo dữ liệu mới** sẽ xóa vĩnh viễn tất cả dữ liệu
+- Luôn sao lưu trước khi thực hiện các thao tác quan trọng
+
+### 🔄 Backup tự động:
+- Khi khôi phục, hệ thống tự động tạo backup của dữ liệu hiện tại
+- Backup được lưu với tên `elderly-pre-restore.db` và `uploads-pre-restore/`
+- Có thể sử dụng để khôi phục lại nếu cần
+
+### 📁 Quản lý bản sao lưu:
+- Tất cả bản sao lưu được lưu trong thư mục `backups/`
+- Mỗi bản sao lưu có timestamp riêng
+- Có thể xóa thủ công các bản sao lưu cũ để tiết kiệm dung lượng
+
+### 🛠️ Xử lý lỗi:
+- Nếu database bị hỏng, sử dụng tính năng khôi phục
+- Nếu hình ảnh bị mất, khôi phục từ bản sao lưu
+- Nếu cần bắt đầu lại hoàn toàn, sử dụng khởi tạo dữ liệu mới
+
+## Phím tắt
+
+| Tính năng | Phím tắt |
+|-----------|----------|
+| Sao lưu tất cả dữ liệu | Ctrl + B |
+| Khôi phục dữ liệu | Ctrl + R |
+| Khởi tạo dữ liệu mới | Ctrl + N |
+
+## Khắc phục sự cố
+
+### Lỗi "Database file not found":
+- Kiểm tra file `backend/db/elderly.db` có tồn tại không
+- Sử dụng tính năng khởi tạo dữ liệu mới để tạo database
+
+### Lỗi "No backups found":
+- Kiểm tra thư mục `backups/` có tồn tại không
+- Đảm bảo đã thực hiện sao lưu ít nhất một lần
+
+### Lỗi "Backup directory not found":
+- Kiểm tra đường dẫn đến thư mục backup
+- Đảm bảo quyền truy cập vào thư mục
+
+### Lỗi khi khôi phục:
+- Kiểm tra bản sao lưu có đầy đủ không
+- Thử khôi phục từ bản sao lưu khác
+- Kiểm tra dung lượng ổ đĩa còn trống
+
+## Liên hệ hỗ trợ
+
+Nếu gặp vấn đề với các tính năng quản lý dữ liệu, vui lòng liên hệ:
+
+**Công ty TNHH công nghệ số Đức minh**
+- Điện thoại: 0963 762 379
+- Email: support@ducminh.com.vn
