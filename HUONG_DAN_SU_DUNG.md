@@ -4,15 +4,12 @@
 
 ## 1. Giới thiệu
 
-Phần mềm được thiết kế để giúp các cấp Hội Người cao tuổi quản lý thông tin hội viên một cách hiệu quả, khoa học và tiện lợi. Các chức năng chính bao gồm: quản lý danh sách hội viên, thống kê, in ấn, và sao lưu/phục hồi dữ liệu an toàn.
+Phần mềm được thiết kế để giúp các cấp Hội Người cao tuổi quản lý thông tin hội viên một cách hiệu quả, khoa học và tiện lợi. Các chức năng chính bao gồm: quản lý dan`h sách hội viên, thống kê, in ấn, và sao lưu/phục hồi dữ liệu an toàn.
 
 ## 2. Khởi động phần mềm
 
 - **Đối với người dùng cuối**: Chạy file `PhanMemQuanLyHoiVienNCT.exe` đã được cung cấp.
-- **Đối với lập trình viên**:
-  - Mở một cửa sổ dòng lệnh (Terminal/Command Prompt) tại thư mục gốc của dự án.
-  - Chạy lệnh: `npm run dev`.
-  - Ứng dụng sẽ tự động khởi động.
+-
 
 ## 3. Giao diện chính
 
