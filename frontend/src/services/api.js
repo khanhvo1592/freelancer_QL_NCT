@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
+// Tạo instance axios chung
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000,
+});
+
 export const elderlyApi = {
   // Lấy danh sách người cao tuổi
   getAll: async () => {
@@ -101,4 +107,7 @@ export const elderlyApi = {
   delete: async (id) => {
     await axios.delete(`${API_URL}/elderly/${id}`);
   }
-}; 
+};
+
+// Export api instance cho các API khác
+export { api }; 
