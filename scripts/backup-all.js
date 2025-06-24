@@ -4,7 +4,10 @@ const sqlite3 = require('sqlite3').verbose();
 
 const backupAll = () => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupDir = path.join(__dirname, '../backups');
+  let backupDir = path.join(__dirname, '../backups');
+  if (process.env.BACKUP_CUSTOM_PATH) {
+    backupDir = process.env.BACKUP_CUSTOM_PATH;
+  }
   const backupPath = path.join(backupDir, `full-backup-${timestamp}`);
   
   // Tạo thư mục backup

@@ -647,11 +647,24 @@ function createMenu() {
                     enabled: isBackendReady,
                     click: async () => {
                         try {
+                            // Cho phép chọn thư mục lưu backup
+                            const backupDirResult = await dialog.showOpenDialog(mainWindow, {
+                                title: 'Chọn thư mục lưu backup',
+                                properties: ['openDirectory', 'createDirectory'],
+                                buttonLabel: 'Chọn thư mục'
+                            });
+                            
+                            if (backupDirResult.canceled) {
+                                return; // Người dùng hủy
+                            }
+                            
+                            const selectedBackupDir = backupDirResult.filePaths[0];
+                            
                             const result = await dialog.showMessageBox(mainWindow, {
                                 type: 'question',
                                 title: 'Xác nhận sao lưu',
                                 message: 'Bạn có chắc chắn muốn sao lưu tất cả dữ liệu và hình ảnh?',
-                                detail: 'Quá trình này sẽ tạo một bản sao lưu hoàn chỉnh của database và tất cả hình ảnh.',
+                                detail: `Quá trình này sẽ tạo một bản sao lưu hoàn chỉnh của database và tất cả hình ảnh.\nVị trí lưu: ${selectedBackupDir}`,
                                 buttons: ['Hủy', 'Sao lưu'],
                                 defaultId: 1,
                                 cancelId: 0
@@ -660,12 +673,26 @@ function createMenu() {
                             if (result.response === 1) {
                                 try {
                                     await stopBackend();
-                                    const backupResult = await backupAllData();
+                                    
+                                    // Sử dụng script backup với đường dẫn tùy chỉnh
+                                    const script = 'node scripts/backup-all.js';
+                                    const env = { ...process.env, BACKUP_CUSTOM_PATH: selectedBackupDir };
+                                    
+                                    await new Promise((resolve, reject) => {
+                                        exec(script, { cwd: path.join(__dirname, '../'), env }, (error, stdout, stderr) => {
+                                            if (error) {
+                                                reject(new Error(`Lỗi khi tạo backup: ${stderr}`));
+                                            } else {
+                                                resolve(stdout);
+                                            }
+                                        });
+                                    });
+                                    
                                     dialog.showMessageBox(mainWindow, {
                                         type: 'info',
                                         title: 'Sao lưu thành công',
                                         message: `Đã sao lưu thành công!`,
-                                        detail: `Database: ${backupResult.recordCount} bản ghi\nHình ảnh: ${backupResult.copiedCount} file (${(backupResult.totalSize / 1024 / 1024).toFixed(2)} MB)\nVị trí: ${backupResult.backupPath}`,
+                                        detail: `Backup đã được lưu tại: ${selectedBackupDir}`,
                                         buttons: ['OK']
                                     });
                                 } finally {
@@ -684,19 +711,23 @@ function createMenu() {
                     enabled: isBackendReady,
                     click: async () => {
                         try {
-                            const backupDir = path.join(__dirname, '../backups');
-                            if (!fs.existsSync(backupDir)) {
-                                dialog.showErrorBox('Lỗi', 'Không tìm thấy thư mục backup');
-                                return;
+                            // Cho phép chọn thư mục backup để restore
+                            const backupFolderResult = await dialog.showOpenDialog(mainWindow, {
+                                title: 'Chọn thư mục backup để khôi phục',
+                                properties: ['openDirectory'],
+                                buttonLabel: 'Chọn thư mục'
+                            });
+                            
+                            if (backupFolderResult.canceled) {
+                                return; // Người dùng hủy
                             }
                             
-                            const backups = fs.readdirSync(backupDir)
-                                .filter(dir => dir.startsWith('full-backup-'))
-                                .sort()
-                                .reverse();
+                            const selectedBackupPath = backupFolderResult.filePaths[0];
                             
-                            if (backups.length === 0) {
-                                dialog.showErrorBox('Lỗi', 'Không tìm thấy bản sao lưu nào');
+                            // Kiểm tra xem thư mục có phải là backup hợp lệ không
+                            const manifestFile = path.join(selectedBackupPath, 'backup-manifest.json');
+                            if (!fs.existsSync(manifestFile)) {
+                                dialog.showErrorBox('Lỗi', 'Thư mục được chọn không phải là backup hợp lệ');
                                 return;
                             }
                             
@@ -704,7 +735,7 @@ function createMenu() {
                                 type: 'warning',
                                 title: 'Xác nhận khôi phục',
                                 message: 'Bạn có chắc chắn muốn khôi phục dữ liệu?',
-                                detail: `Dữ liệu hiện tại sẽ được thay thế bằng bản sao lưu mới nhất (${backups[0]}).\nQuá trình này không thể hoàn tác!`,
+                                detail: `Dữ liệu hiện tại sẽ được thay thế bằng backup từ: ${path.basename(selectedBackupPath)}\nQuá trình này không thể hoàn tác!`,
                                 buttons: ['Hủy', 'Khôi phục'],
                                 defaultId: 1,
                                 cancelId: 0
@@ -713,12 +744,25 @@ function createMenu() {
                             if (result.response === 1) {
                                 try {
                                     await stopBackend();
-                                    const restoreResult = await restoreData();
+                                    
+                                    // Sử dụng script restore với đường dẫn được chọn
+                                    const script = `node scripts/restore-all.js "${selectedBackupPath}"`;
+                                    
+                                    await new Promise((resolve, reject) => {
+                                        exec(script, { cwd: path.join(__dirname, '../') }, (error, stdout, stderr) => {
+                                            if (error) {
+                                                reject(new Error(`Lỗi khi khôi phục backup: ${stderr}`));
+                                            } else {
+                                                resolve(stdout);
+                                            }
+                                        });
+                                    });
+                                    
                                     dialog.showMessageBox(mainWindow, {
                                         type: 'info',
                                         title: 'Khôi phục thành công',
                                         message: `Đã khôi phục thành công!`,
-                                        detail: `Database: ${restoreResult.recordCount} bản ghi\nHình ảnh: ${restoreResult.restoredCount} file (${(restoreResult.totalSize / 1024 / 1024).toFixed(2)} MB)`,
+                                        detail: `Dữ liệu đã được khôi phục từ: ${path.basename(selectedBackupPath)}`,
                                         buttons: ['OK']
                                     });
                                 } finally {
@@ -850,3 +894,154 @@ function setBackendReady(isReady) {
         console.error('!!! setBackendReady: "Dữ liệu" menu has no submenu to update.');
     }
 }
+
+// Thêm IPC handlers cho backup/restore
+ipcMain.handle('select-backup-directory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Chọn thư mục lưu backup',
+        properties: ['openDirectory', 'createDirectory'],
+        buttonLabel: 'Chọn thư mục'
+    });
+    
+    if (!result.canceled && result.filePaths.length > 0) {
+        return result.filePaths[0];
+    }
+    return null;
+});
+
+ipcMain.handle('select-backup-file', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Chọn file backup để khôi phục',
+        properties: ['openFile'],
+        filters: [
+            { name: 'Backup Files', extensions: ['db', 'json', '*'] },
+            { name: 'All Files', extensions: ['*'] }
+        ],
+        buttonLabel: 'Chọn file'
+    });
+    
+    if (!result.canceled && result.filePaths.length > 0) {
+        return result.filePaths[0];
+    }
+    return null;
+});
+
+ipcMain.handle('select-backup-folder', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Chọn thư mục backup để khôi phục',
+        properties: ['openDirectory'],
+        buttonLabel: 'Chọn thư mục'
+    });
+    
+    if (!result.canceled && result.filePaths.length > 0) {
+        return result.filePaths[0];
+    }
+    return null;
+});
+
+ipcMain.handle('get-backup-list', async () => {
+    try {
+        const backupDir = path.join(__dirname, '../backups');
+        if (!fs.existsSync(backupDir)) return [];
+        
+        const backups = fs.readdirSync(backupDir)
+            .filter(dir => dir.startsWith('full-backup-'))
+            .map(dir => {
+                const backupPath = path.join(backupDir, dir);
+                const manifestFile = path.join(backupPath, 'backup-manifest.json');
+                let manifest = null;
+                if (fs.existsSync(manifestFile)) {
+                    try {
+                        manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+                    } catch {}
+                }
+                return {
+                    name: dir,
+                    path: backupPath,
+                    type: manifest?.backupType || 'full',
+                    date: manifest?.backupDate || '',
+                    manifest
+                };
+            });
+        return backups;
+    } catch (error) {
+        console.error('Error getting backup list:', error);
+        return [];
+    }
+});
+
+ipcMain.handle('create-backup', async (event, options) => {
+    try {
+        const { type, customPath } = options;
+        let script = 'node scripts/backup-all.js';
+        const env = { ...process.env };
+        if (customPath) env.BACKUP_CUSTOM_PATH = customPath;
+        
+        return new Promise((resolve, reject) => {
+            exec(script, { cwd: path.join(__dirname, '../'), env }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(`Lỗi khi tạo backup: ${stderr}`));
+                } else {
+                    resolve({ success: true, stdout });
+                }
+            });
+        });
+    } catch (error) {
+        throw error;
+    }
+});
+
+ipcMain.handle('restore-backup', async (event, backupPath) => {
+    try {
+        const script = `node scripts/restore-all.js "${backupPath}"`;
+        
+        return new Promise((resolve, reject) => {
+            exec(script, { cwd: path.join(__dirname, '../') }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(`Lỗi khi khôi phục backup: ${stderr}`));
+                } else {
+                    resolve({ success: true, stdout });
+                }
+            });
+        });
+    } catch (error) {
+        throw error;
+    }
+});
+
+ipcMain.handle('delete-backup', async (event, backupPath) => {
+    try {
+        fs.rmSync(backupPath, { recursive: true, force: true });
+        return { success: true };
+    } catch (error) {
+        throw new Error(`Lỗi khi xóa backup: ${error.message}`);
+    }
+});
+
+ipcMain.handle('download-backup', async (event, backupPath) => {
+    try {
+        // Tạo file zip từ backup folder
+        const archiver = require('archiver');
+        const output = fs.createWriteStream(`${backupPath}.zip`);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        
+        return new Promise((resolve, reject) => {
+            output.on('close', () => {
+                // Mở thư mục chứa file zip
+                const { shell } = require('electron');
+                shell.showItemInFolder(`${backupPath}.zip`);
+                resolve({ success: true });
+            });
+            
+            archive.on('error', (err) => {
+                reject(err);
+            });
+            
+            archive.pipe(output);
+            archive.directory(backupPath, false);
+            archive.finalize();
+        });
+    } catch (error) {
+        throw new Error(`Lỗi khi tải backup: ${error.message}`);
+    }
+});
