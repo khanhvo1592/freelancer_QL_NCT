@@ -10,53 +10,9 @@ let backendProcess;
 let isBackendReady = false;
 let mainMenu = null;
 
-function checkExpiration() {
-    const expirationDate = new Date(2050, 6, 6); 
-    const currentDate = new Date();
-    
-    
-    if (currentDate > expirationDate) {
-        dialog.showMessageBoxSync({
-            type: 'error',
-            title: 'Ứng dụng hết hạn',
-            message: 'Phần mềm đã hết hạn sử dụng vào ngày 06/07/2050.\nVui lòng liên hệ với nhà cung cấp để gia hạn.',
-            buttons: ['Đóng'],
-            defaultId: 0
-        });
-        app.quit();
-        return false;
-    }
-    
-    return true;
-}
 
-function checkRequiredFiles() {
-    const imagesPath = 'D:\\images';
-    try {
-        // Kiểm tra thư mục tồn tại
-        if (!fs.existsSync(imagesPath)) {
-            app.quit();
-            return false;
-        }
 
-        // Kiểm tra có file trong thư mục
-        const files = fs.readdirSync(imagesPath);
-        const hasImages = files.some(file => {
-            const ext = path.extname(file).toLowerCase();
-            return ['.jpg', '.jpeg', '.png', '.gif'].includes(ext);
-        });
 
-        if (!hasImages) {
-            app.quit();
-            return false;
-        }
-
-        return true;
-    } catch (error) {
-        app.quit();
-        return false;
-    }
-}
 
 function log(message) {
     console.log(`[Electron] ${message}`);
@@ -184,15 +140,6 @@ function pollBackendHealth() {
 }
 
 async function createWindow() {
-    // Kiểm tra ngày hết hạn trước khi tạo cửa sổ
-    if (!checkExpiration()) {
-        return;
-    }
-    
-    // Kiểm tra trước khi tạo cửa sổ
-    if (!checkRequiredFiles()) {
-        return;
-    }
 
     console.log('Creating main window...');
     mainWindow = new BrowserWindow({
@@ -256,16 +203,6 @@ async function createWindow() {
 }
 
 app.on('ready', () => {
-    // Kiểm tra ngày hết hạn trước khi khởi động
-    if (!checkExpiration()) {
-        return;
-    }
-    
-    // Kiểm tra trước khi khởi động
-    if (!checkRequiredFiles()) {
-        return;
-    }
-    
     // Tạo menu tùy chỉnh
     createMenu();
     

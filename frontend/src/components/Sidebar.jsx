@@ -84,7 +84,7 @@ const Sidebar = () => {
           
           {open && (
             <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.9rem' }}>
-              HỘI NGƯỜI CAO TUỔI VIỆT NAM
+                              QUẢN LÝ HỘI VIÊN NGƯỜI CAO TUỔI
             </Typography>
           )}
           
