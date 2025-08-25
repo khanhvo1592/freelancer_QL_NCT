@@ -88,7 +88,7 @@ const AppHeader = () => {
                     letterSpacing: '0.5px',
                   }}
                 >
-                  HỘI NGƯỜI CAO TUỔI VIỆT NAM
+                  QUẢN LÝ HỘI VIÊN HỘI NGƯỜI CAO TUỔI
                 </Typography>
               </Box>
 
