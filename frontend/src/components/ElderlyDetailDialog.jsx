@@ -328,6 +328,7 @@ const ElderlyDetailDialog = ({ open, onClose, elderly, onRefresh, defaultEditing
                       label="Ngày tham gia hội NCT"
                       value={editedData.joinDate}
                       onChange={(date) => handleDateChange('joinDate', date)}
+                      format="DD/MM/YYYY"
                       slotProps={{
                         textField: {
                           fullWidth: true
@@ -353,6 +354,7 @@ const ElderlyDetailDialog = ({ open, onClose, elderly, onRefresh, defaultEditing
                       label="Ngày cấp thẻ"
                       value={editedData.cardIssueDate}
                       onChange={(date) => handleDateChange('cardIssueDate', date)}
+                      format="DD/MM/YYYY"
                       slotProps={{
                         textField: {
                           fullWidth: true
@@ -391,6 +393,7 @@ const ElderlyDetailDialog = ({ open, onClose, elderly, onRefresh, defaultEditing
                         label="Ngày mất"
                         value={editedData.deceasedDate}
                         onChange={(date) => handleDateChange('deceasedDate', date)}
+                        format="DD/MM/YYYY"
                         slotProps={{
                           textField: {
                             fullWidth: true

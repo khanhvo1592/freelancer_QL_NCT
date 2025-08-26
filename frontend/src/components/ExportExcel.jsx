@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import * as XLSX from 'xlsx';
+import dayjs from 'dayjs';
 
 const ExportExcel = ({ data, selectedYear }) => {
   const handleExport = () => {
@@ -12,7 +13,7 @@ const ExportExcel = ({ data, selectedYear }) => {
 
       return {
         'Họ và tên': person.name || '',
-        'Ngày sinh': birthDate.toLocaleDateString('vi-VN'),
+        'Ngày sinh': dayjs(person.dateOfBirth).format('DD/MM/YYYY'),
         [`Tuổi ${selectedYear}`]: age,
         'Địa chỉ': person.address || '',
         'Số điện thoại': person.phone || '',

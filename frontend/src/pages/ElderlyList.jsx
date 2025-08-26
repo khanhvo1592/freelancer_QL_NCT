@@ -36,6 +36,7 @@ import ExportExcel from '../components/ExportExcel';
 import AddElderlyDialog from '../components/AddElderlyDialog';
 import { elderlyApi } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
+import dayjs from 'dayjs';
 
 const ElderlyList = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,7 +143,7 @@ const ElderlyList = () => {
 
   // Format ngày tháng
   const formatDate = (date) => {
-    return date.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return dayjs(date).format('DD/MM/YYYY');
   };
 
   if (loading) {

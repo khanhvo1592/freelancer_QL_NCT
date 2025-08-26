@@ -38,6 +38,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import * as XLSX from 'xlsx';
 import { elderlyApi } from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
+import dayjs from 'dayjs';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -216,7 +217,7 @@ const Statistics = () => {
     // Chuẩn bị dữ liệu cho excel
     const worksheetData = [
       ['BÁO CÁO THỐNG KÊ NGƯỜI CAO TUỔI', '', '', '', ''],
-      [`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`, '', '', '', ''],
+      [`Ngày xuất báo cáo: ${dayjs().format('DD/MM/YYYY')}`, '', '', '', ''],
       [`Dự báo cho năm: ${selectedYear}`, '', '', '', ''],
       ['', '', '', '', ''],
       ['THỐNG KÊ TỔNG QUAN', '', '', '', ''],

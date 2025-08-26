@@ -3,6 +3,7 @@ import { Button } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import dayjs from 'dayjs';
 
 // Configure pdfMake with default fonts
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -26,7 +27,7 @@ const PrintReport = ({ data, selectedYear }) => {
           
           return [
             person.name || '',
-            birthDate.toLocaleDateString('vi-VN'),
+            dayjs(person.dateOfBirth).format('DD/MM/YYYY'),
             age.toString(),
             person.address || '',
             person.phone || '',
@@ -42,7 +43,7 @@ const PrintReport = ({ data, selectedYear }) => {
             style: 'header'
           },
           {
-            text: `Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`,
+            text: `Ngày xuất báo cáo: ${dayjs().format('DD/MM/YYYY')}`,
             style: 'subheader'
           },
           {

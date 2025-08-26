@@ -7,6 +7,7 @@ import {
   Box,
   CardActionArea,
 } from '@mui/material';
+import dayjs from 'dayjs';
 
 const defaultAvatarUrl = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 
@@ -79,7 +80,7 @@ const ElderlyGallery = ({ data, onElderlyClick }) => {
                 </Typography>
                 
                 <Typography variant="body2" color="text.secondary">
-                  {elderly.birthDate ? new Date(elderly.birthDate).toLocaleDateString('vi-VN') : ''} 
+                  {elderly.birthDate ? dayjs(elderly.birthDate).format('DD/MM/YYYY') : ''} 
                   {elderly.birthDate && elderly.projectedAge ? ' - ' : ''}
                   {elderly.projectedAge ? `${elderly.projectedAge} tuổi` : ''}
                 </Typography>

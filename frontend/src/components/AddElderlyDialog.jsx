@@ -221,6 +221,7 @@ const AddElderlyDialog = ({ open, onClose, onAdd }) => {
               value={newElderly.dateOfBirth ? new Date(newElderly.dateOfBirth) : null}
               onChange={(date) => handleDateChange('dateOfBirth', date)}
               maxDate={today}
+              format="dd/MM/yyyy"
               slotProps={{
                 textField: {
                   fullWidth: true,
@@ -298,6 +299,7 @@ const AddElderlyDialog = ({ open, onClose, onAdd }) => {
                 value={newElderly.deathDate ? new Date(newElderly.deathDate) : null}
                 onChange={(date) => handleDateChange('deathDate', date)}
                 maxDate={today}
+                format="dd/MM/yyyy"
                 slotProps={{
                   textField: {
                     fullWidth: true
@@ -317,6 +319,7 @@ const AddElderlyDialog = ({ open, onClose, onAdd }) => {
               value={newElderly.joinDate ? new Date(newElderly.joinDate) : null}
               onChange={(date) => handleDateChange('joinDate', date)}
               maxDate={today}
+              format="dd/MM/yyyy"
               slotProps={{
                 textField: {
                   fullWidth: true
@@ -339,6 +342,7 @@ const AddElderlyDialog = ({ open, onClose, onAdd }) => {
               value={newElderly.cardIssueDate ? new Date(newElderly.cardIssueDate) : null}
               onChange={(date) => handleDateChange('cardIssueDate', date)}
               maxDate={today}
+              format="dd/MM/yyyy"
               slotProps={{
                 textField: {
                   fullWidth: true
