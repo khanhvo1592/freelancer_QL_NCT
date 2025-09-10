@@ -1,6 +1,8 @@
 {
   "name": "elder-manager-app",
   "version": "1.0.0",
+  "description": "Phần mềm quản lý hội viên hội người cao tuổi",
+  "author": "Công ty TNHH công nghệ số Đức Minh",
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
@@ -19,7 +21,9 @@
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "clean": "rimraf dist frontend/build",
     "build:frontend": "cd frontend && npm run build",
-    "build": "npm run clean && npm run build:frontend && electron-builder build --win portable",
+    "build": "npm run clean && npm run build:frontend && npm run build:backend && electron-builder build --win portable",
+    "build:backend": "cd backend && npm install --production && cd ..",
+    "build:all": "npm run clean && npm run build:frontend && npm run build:backend && electron-builder build --win",
     "postinstall": "cd frontend && npm install && cd ../backend && npm install",
     "backup:db": "node scripts/backup-db.js",
     "restore:db": "node scripts/restore-db.js",
@@ -68,9 +72,29 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "icon": "frontend/public/app.ico"
+      "icon": "frontend/public/app.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "publisherName": "Công ty TNHH công nghệ số Đức Minh",
+      "verifyUpdateCodeSignature": false,
+      "sign": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "frontend/public/app.ico",
+      "uninstallerIcon": "frontend/public/app.ico",
+      "installerHeaderIcon": "frontend/public/app.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Phần mềm quản lý hội viên NCT"
     },
     "portable": {
       "artifactName": "PhanMemQuanLyHoiVienNCT.exe",

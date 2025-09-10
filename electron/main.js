@@ -76,10 +76,42 @@ function startBackend() {
     }
 
     console.log(`Spawning backend: node ${scriptPath}`);
-    backendProcess = spawn('node', [scriptPath], {
+    
+    // Cấu hình spawn cho Windows 11
+    const spawnOptions = {
         cwd: cwd,
-        stdio: ['ignore', 'pipe', 'pipe', 'ipc']
-    });
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+        env: {
+            ...process.env,
+            NODE_ENV: 'production',
+            // Thêm các biến môi trường cho Windows 11
+            ELECTRON_RUN_AS_NODE: '1',
+            ELECTRON_NO_ATTACH_CONSOLE: '1'
+        },
+        // Thêm shell option cho Windows
+        shell: process.platform === 'win32'
+    };
+
+    try {
+        backendProcess = spawn('node', [scriptPath], spawnOptions);
+        
+        // Xử lý lỗi spawn
+        backendProcess.on('error', (error) => {
+            console.error('Backend spawn error:', error);
+            if (error.code === 'ENOENT') {
+                dialog.showErrorBox('Lỗi Node.js', 'Không tìm thấy Node.js. Vui lòng cài đặt Node.js từ https://nodejs.org');
+            } else if (error.code === 'EACCES') {
+                dialog.showErrorBox('Lỗi quyền truy cập', 'Không có quyền chạy Node.js. Vui lòng chạy với quyền Administrator');
+            } else {
+                dialog.showErrorBox('Lỗi Backend', `Lỗi khởi động backend: ${error.message}`);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Failed to spawn backend process:', error);
+        dialog.showErrorBox('Lỗi Backend', `Không thể khởi động backend: ${error.message}`);
+        return;
+    }
 
     // --- Health Check Polling ---
     let readinessAttempts = 0;
